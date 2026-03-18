@@ -1,133 +1,132 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
-use App\Http\Controllers\Admin\DashboardController;
-use App\Http\Controllers\Admin\LevelController;
-use App\Http\Controllers\Admin\VideoController;
-use App\Http\Controllers\Admin\QuestionController;
-use App\Http\Controllers\Admin\AnswerController;
-use App\Http\Controllers\Admin\ChatbotRuleController;
-use App\Http\Controllers\Admin\ChatbotSessionController;
-use App\Http\Controllers\Admin\UserController;
+
+// Controllers
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\WelcomeController;
+
+// Admin Controllers
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\LevelController as AdminLevelController;
+use App\Http\Controllers\Admin\VideoController as AdminVideoController;
+use App\Http\Controllers\Admin\QuestionController as AdminQuestionController;
+use App\Http\Controllers\Admin\ChatbotRuleController as AdminChatbotRuleController;
+use App\Http\Controllers\Admin\ChatbotSessionController as AdminChatbotSessionController;
+use App\Http\Controllers\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Admin\SkillController as AdminSkillController;
+
+// User Controllers
+use App\Http\Controllers\User\DashboardController as UserDashboardController;
+use App\Http\Controllers\User\LevelController as UserLevelController;
+use App\Http\Controllers\User\SkillController as UserSkillController;
 
 // ==========================================
-// ROOT REDIRECT
+// ROOT REDIRECT (SMART ROLE BASED)
 // ==========================================
 Route::get('/', function () {
-    if (Auth::check()) {
-
-        $user = Auth::user();
-
-        // role 0 = normal user
-        if ($user->role === '0') {
-            return redirect()->route('welcome');
-        }
-
-        // role 1 = admin
-        return redirect()->route('admin.dashboard');
+    if (!Auth::check()) {
+        return redirect()->route('welcome');
     }
 
-    return redirect()->route('welcome');
+    return Auth::user()->role == 1
+        ? redirect()->route('admin.dashboard')
+        : redirect()->route('user.dashboard');
 });
 
+// ==========================================
+// PUBLIC WELCOME ROUTE
+// ==========================================
+Route::get('/welcome', [WelcomeController::class, 'index'])->name('welcome');
 
 // ==========================================
-// PUBLIC WELCOME
+// USER ROUTES (ROLE = USER) - ALL PROTECTED
 // ==========================================
-Route::get('/welcome', function () {
-    return view('welcome');
-})->name('welcome');
+Route::middleware(['auth', 'user'])
+    ->prefix('user')
+    ->name('user.')
+    ->group(function () {
 
+        // Dashboard
+        Route::get('/dashboard', [UserDashboardController::class, 'index'])->name('dashboard');
+
+        // Levels
+        Route::get('/levels', [UserLevelController::class, 'index'])->name('levels.index');
+        Route::get('/levels/{level}', [UserLevelController::class, 'show'])->name('levels.show');
+        Route::post('/levels/{level}/select', [UserLevelController::class, 'select'])->name('levels.select');
+        Route::get('/levels/{level}/next', [UserLevelController::class, 'nextLevel'])->name('levels.next');
+
+        // Skills
+        Route::get('/skills', [UserSkillController::class, 'index'])->name('skills.index');
+        Route::get('/skills/{skill}', [UserSkillController::class, 'show'])->name('skills.show');
+        Route::get('/skills/{skill}/practice', [UserSkillController::class, 'practice'])->name('skills.practice');
+        Route::post('/skills/{skill}/practice/submit', [UserSkillController::class, 'submitPractice'])->name('skills.practice.submit');
+        Route::get('/skills/{skill}/video/{video}', [UserSkillController::class, 'watchVideo'])->name('skills.video');
+    });
 
 // ==========================================
-// PROFILE ROUTES
+// PROFILE ROUTES (AUTHENTICATED USERS)
 // ==========================================
 Route::middleware('auth')->group(function () {
-
-    Route::get('/profile', [ProfileController::class, 'edit'])
-        ->name('profile.edit');
-
-    Route::patch('/profile', [ProfileController::class, 'update'])
-        ->name('profile.update');
-
-    Route::delete('/profile', [ProfileController::class, 'destroy'])
-        ->name('profile.destroy');
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-
 // ==========================================
-// ADMIN ROUTES
+// ADMIN ROUTES (ROLE = ADMIN)
 // ==========================================
 Route::middleware(['auth', 'admin'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
 
-        // Dashboard
-        Route::get('/dashboard', [DashboardController::class, 'index'])
-            ->name('dashboard');
+        Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
 
         // Levels
-        Route::resource('levels', LevelController::class);
+        Route::resource('levels', AdminLevelController::class);
 
         // Videos
-        Route::resource('videos', VideoController::class);
-        Route::post('videos/bulk-delete', [VideoController::class, 'bulkDelete'])->name('videos.bulk-delete');
-        Route::post('videos/update-order', [VideoController::class, 'updateOrder'])->name('videos.update-order');
-        Route::get('videos/statistics', [VideoController::class, 'statistics'])->name('videos.statistics');
-        Route::get('levels/{level}/videos', [VideoController::class, 'levelVideos'])->name('levels.videos');
+        Route::resource('videos', AdminVideoController::class);
+        Route::post('videos/bulk-delete', [AdminVideoController::class, 'bulkDelete'])->name('videos.bulk-delete');
+        Route::post('videos/update-order', [AdminVideoController::class, 'updateOrder'])->name('videos.update-order');
 
+        // Questions
+        Route::resource('questions', AdminQuestionController::class);
 
-        // Questions and Answers
-        Route::resource('questions', QuestionController::class);
-        Route::resource('videos', VideoController::class);
-        Route::get('/api/videos', [App\Http\Controllers\Admin\VideoApiController::class, 'index'])->name('api.videos');
+        // Chatbot
+        Route::prefix('chatbot')->name('chatbot.')->group(function () {
 
+            // Rules
+            Route::resource('rules', AdminChatbotRuleController::class);
 
-        Route::get('/api/skills/{skillId}/levels', [App\Http\Controllers\Admin\ApiController::class, 'getSkillLevels'])->name('api.skills.levels');
-        Route::get('/api/videos', [App\Http\Controllers\Admin\VideoApiController::class, 'index'])->name('api.videos');
+            // Sessions
+            Route::resource('sessions', AdminChatbotSessionController::class)
+                ->only(['index', 'show']);
 
-        // Chatbot Rules
-        Route::resource('chatbot/rules', ChatbotRuleController::class)->names([
-            'index' => 'chatbot.rules.index',
-            'create' => 'chatbot.rules.create',
-            'store' => 'chatbot.rules.store',
-            'show' => 'chatbot.rules.show',
-            'edit' => 'chatbot.rules.edit',
-            'update' => 'chatbot.rules.update',
-            'destroy' => 'chatbot.rules.destroy',
-        ]);
-
-        // Chatbot Sessions
-        Route::resource('chatbot/sessions', ChatbotSessionController::class)->names([
-            'index' => 'chatbot.sessions.index',
-            'show' => 'chatbot.sessions.show',
-        ])->only(['index', 'show']);
-
-        // Chatbot Analytics
-        Route::get('chatbot/analytics', [ChatbotSessionController::class, 'analytics'])->name('chatbot.analytics');
-
-        Route::resource('users', UserController::class);
-        Route::post('users/bulk-delete', [UserController::class, 'bulkDelete'])->name('users.bulk-delete');
-        Route::post('users/bulk-update-role', [UserController::class, 'bulkUpdateRole'])->name('users.bulk-update-role');
-        Route::post('users/{user}/toggle-role', [UserController::class, 'toggleRole'])->name('users.toggle-role');
-        Route::post('users/{user}/verify-email', [UserController::class, 'verifyEmail'])->name('users.verify-email');
-        Route::get('users/{user}/progress', [UserController::class, 'progress'])->name('users.progress');
-        Route::get('users/export/csv', [UserController::class, 'export'])->name('users.export');
-        Route::get('users/statistics/data', [UserController::class, 'statistics'])->name('users.statistics');
-
-        Route::prefix('levels/{level}')->name('levels.')->group(function () {
-            Route::get('videos', [VideoController::class, 'levelVideos'])->name('videos');
-            Route::get('questions', [QuestionController::class, 'levelQuestions'])->name('questions');
+            // Analytics
+            Route::get('analytics', [AdminChatbotSessionController::class, 'analytics'])
+                ->name('analytics');
         });
 
-        //skills
-        Route::resource('skills', App\Http\Controllers\Admin\SkillController::class);
-        Route::post('skills/reorder', [App\Http\Controllers\Admin\SkillController::class, 'reorder'])->name('skills.reorder');
-        Route::get('skills/{skill}/levels', [App\Http\Controllers\Admin\SkillController::class, 'getLevels'])->name('skills.levels');
+        // Users
+        Route::resource('users', AdminUserController::class);
+        Route::post('users/bulk-delete', [AdminUserController::class, 'bulkDelete'])->name('users.bulk-delete');
+        Route::post('users/{user}/toggle-role', [AdminUserController::class, 'toggleRole'])->name('users.toggle-role');
+        Route::get('users/{user}/progress', [AdminUserController::class, 'progress'])
+            ->name('users.progress');
+        Route::post('users/bulk-update-role', [AdminUserController::class, 'bulkUpdateRole'])
+            ->name('users.bulk-update-role');
+        Route::get('users/export', [AdminUserController::class, 'export'])
+    ->name('users.export');
+
+        // Skills
+        Route::resource('skills', AdminSkillController::class);
+        Route::post('skills/reorder', [AdminSkillController::class, 'reorder'])->name('skills.reorder');
     });
 
-
+// ==========================================
+// AUTH ROUTES
+// ==========================================
 require __DIR__ . '/auth.php';

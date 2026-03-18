@@ -44,7 +44,6 @@ class Question extends Model
 
     /**
      * Get the level associated with the question.
-     * ADD THIS METHOD
      */
     public function level()
     {

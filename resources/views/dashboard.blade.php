@@ -291,7 +291,7 @@
         </a>
 
 
-        <a href="{{ route('admin.chatbot.rules.index') }}"
+        <a href="#"
             class="flex items-center gap-3 p-4 bg-orange-50 hover:bg-orange-100 transition rounded-xl group">
 
             <div class="bg-orange-500 text-white p-2 rounded-lg">
