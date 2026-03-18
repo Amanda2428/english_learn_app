@@ -21,6 +21,7 @@ use App\Http\Controllers\Admin\SkillController as AdminSkillController;
 use App\Http\Controllers\User\DashboardController as UserDashboardController;
 use App\Http\Controllers\User\LevelController as UserLevelController;
 use App\Http\Controllers\User\SkillController as UserSkillController;
+use App\Models\User;
 
 // ==========================================
 // ROOT REDIRECT (SMART ROLE BASED)
@@ -61,8 +62,8 @@ Route::middleware(['auth', 'user'])
         Route::get('/skills', [UserSkillController::class, 'index'])->name('skills.index');
         Route::get('/skills/{skill}', [UserSkillController::class, 'show'])->name('skills.show');
         Route::get('/skills/{skill}/practice', [UserSkillController::class, 'practice'])->name('skills.practice');
-        Route::post('/skills/{skill}/practice/submit', [UserSkillController::class, 'submitPractice'])->name('skills.practice.submit');
-        Route::get('/skills/{skill}/video/{video}', [UserSkillController::class, 'watchVideo'])->name('skills.video');
+        Route::post('/skills/{skill}/practice/submit', [UserSkillController::class, 'submitPractice'])
+            ->name('skills.practice.submit');
     });
 
 // ==========================================
@@ -119,7 +120,7 @@ Route::middleware(['auth', 'admin'])
         Route::post('users/bulk-update-role', [AdminUserController::class, 'bulkUpdateRole'])
             ->name('users.bulk-update-role');
         Route::get('users/export', [AdminUserController::class, 'export'])
-    ->name('users.export');
+            ->name('users.export');
 
         // Skills
         Route::resource('skills', AdminSkillController::class);
