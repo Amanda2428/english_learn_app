@@ -171,7 +171,7 @@
                                         @endif
                                     </div>
                                 </td>
-                                  <td class="px-6 py-4 whitespace-nowrap">
+                                <td class="px-6 py-4 whitespace-nowrap">
                                     @if (isset($question->level) && $question->level)
                                         <span
                                             class="inline-flex px-2.5 py-1 rounded-full bg-purple-100 text-purple-800 text-xs font-semibold">
@@ -194,7 +194,7 @@
                                     </span>
                                 </td>
 
-                              
+
 
                                 <td class="px-6 py-4 whitespace-nowrap text-center">
                                     @php
@@ -335,16 +335,17 @@
 
                 <!-- Footer -->
                 <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-lg flex justify-end space-x-3">
-                    <button onclick="closeDeleteModal()"
-                        class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition">
-                        Cancel
-                    </button>
-
+                    <div>
+                        <button onclick="closeDeleteModal()"
+                            class="px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition">
+                            Cancel
+                        </button>
+                    </div>
                     <form id="deleteForm" method="POST" class="inline">
                         @csrf
                         @method('DELETE')
                         <button type="submit"
-                            class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
+                            class="px-4 py-3  bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
                             Delete Question
                         </button>
                     </form>

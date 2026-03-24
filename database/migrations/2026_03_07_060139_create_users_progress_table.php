@@ -34,7 +34,7 @@ return new class extends Migration
             $table->integer('time_spent_minutes')->default(0); 
             
             // Status
-            $table->enum('status', ['not_started', 'in_progress', 'completed'])->default('not_started');
+            $table->enum('', ['not_started', 'in_progress', 'completed'])->default('not_started');
             $table->timestamp('started_at')->nullable();
             $table->timestamp('completed_at')->nullable();
             

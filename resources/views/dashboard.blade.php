@@ -75,10 +75,15 @@
             <h3 class="text-lg font-semibold text-gray-800 mb-4">Profile Management</h3>
 
             <div class="flex items-center space-x-4 mb-4">
-                <div
-                    class="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xl">
-                    {{ strtoupper(substr($profileData['name'], 0, 1)) }}
-                </div>
+                @if ($profileData['profile'] ?? false)
+                    <img src="{{ Storage::url($profileData['profile']) }}" alt="Profile Picture"
+                        class="w-14 h-14 rounded-full object-cover">
+                @else
+                    <div
+                        class="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xl">
+                        {{ strtoupper(substr($profileData['name'], 0, 1)) }}
+                    </div>
+                @endif
                 <div>
                     <p class="font-semibold text-gray-800">{{ $profileData['name'] }}</p>
                     <p class="text-sm text-gray-500">{{ $profileData['email'] }}</p>
@@ -88,7 +93,7 @@
 
             <div class="space-y-2 text-sm text-gray-600">
                 <p><span class="font-medium">Joined:</span> {{ $profileData['joined'] }}</p>
-                <p><span class="font-medium">Bio:</span> {{ $profileData['profile'] }}</p>
+                <p><span class="font-medium">Bio:</span> {{ $profileData['bio'] }}</p>
             </div>
 
             <div class="mt-4 grid gap-2">
@@ -208,9 +213,14 @@
                 @forelse($recentUsers as $user)
                     <div class="flex items-center justify-between">
                         <div class="flex items-center space-x-3">
-                            <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                            @if ($user->profile)
+                                <img src="{{ Storage::url($user->profile) }}" alt="Profile Picture"
+                                    class="w-10 h-10 rounded-full object-cover">
+                            @else
+                                <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
                                 <span class="text-gray-600 font-semibold">{{ substr($user->name, 0, 1) }}</span>
                             </div>
+                            @endif
                             <div>
                                 <p class="font-medium text-gray-800">{{ $user->name }}</p>
                                 <p class="text-sm text-gray-500">{{ $user->email }}</p>
@@ -251,64 +261,64 @@
             </div>
         </div>
     </div>
-  {{-- Quick Actions --}}
-<div class="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
-    <h3 class="text-lg font-semibold text-gray-800 mb-5">Quick Actions</h3>
+    {{-- Quick Actions --}}
+    <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-5">Quick Actions</h3>
 
-    <div class="space-y-3">
+        <div class="space-y-3">
 
-        <a href="{{ route('admin.users.create') }}"
-            class="flex items-center gap-3 p-4 bg-blue-50 hover:bg-blue-100 transition rounded-xl group">
-            
-            <div class="bg-blue-500 text-white p-2 rounded-lg">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" 
-                    viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M18 9v6M15 12h6M5 20h14a2 2 0 002-2V7a2 2 0 00-2-2h-5l-2-2H5a2 2 0 00-2 2v13a2 2 0 002 2z" />
-                </svg>
-            </div>
+            <a href="{{ route('admin.users.create') }}"
+                class="flex items-center gap-3 p-4 bg-blue-50 hover:bg-blue-100 transition rounded-xl group">
 
-            <span class="text-sm font-semibold text-blue-700">
-                Add New User
-            </span>
-        </a>
+                <div class="bg-blue-500 text-white p-2 rounded-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M18 9v6M15 12h6M5 20h14a2 2 0 002-2V7a2 2 0 00-2-2h-5l-2-2H5a2 2 0 00-2 2v13a2 2 0 002 2z" />
+                    </svg>
+                </div>
 
-
-        <a href="{{ route('admin.levels.index') }}"
-            class="flex items-center gap-3 p-4 bg-indigo-50 hover:bg-indigo-100 transition rounded-xl group">
-
-            <div class="bg-indigo-500 text-white p-2 rounded-lg">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
-                    viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M3 7h18M3 12h18M3 17h18" />
-                </svg>
-            </div>
-
-            <span class="text-sm font-semibold text-indigo-700">
-                Manage Levels
-            </span>
-        </a>
+                <span class="text-sm font-semibold text-blue-700">
+                    Add New User
+                </span>
+            </a>
 
 
-        <a href="#"
-            class="flex items-center gap-3 p-4 bg-orange-50 hover:bg-orange-100 transition rounded-xl group">
+            <a href="{{ route('admin.levels.index') }}"
+                class="flex items-center gap-3 p-4 bg-indigo-50 hover:bg-indigo-100 transition rounded-xl group">
 
-            <div class="bg-orange-500 text-white p-2 rounded-lg">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
-                    viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M8 10h.01M12 10h.01M16 10h.01M9 16h6M4 6h16M4 20h16" />
-                </svg>
-            </div>
+                <div class="bg-indigo-500 text-white p-2 rounded-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 7h18M3 12h18M3 17h18" />
+                    </svg>
+                </div>
 
-            <span class="text-sm font-semibold text-orange-700">
-                Manage Chatbot Rules
-            </span>
-        </a>
+                <span class="text-sm font-semibold text-indigo-700">
+                    Manage Levels
+                </span>
+            </a>
 
+
+            <a href="{{ route('admin.chatbot.rules.index') }}"
+                class="flex items-center gap-3 p-4 bg-orange-50 hover:bg-orange-100 transition rounded-xl group">
+
+                <div class="bg-orange-500 text-white p-2 rounded-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M8 10h.01M12 10h.01M16 10h.01M9 16h6M4 6h16M4 20h16" />
+                    </svg>
+                </div>
+
+                <span class="text-sm font-semibold text-orange-700">
+                    Manage Chatbot Rules
+                </span>
+            </a>
+
+        </div>
     </div>
-</div>
 
 @endsection
 

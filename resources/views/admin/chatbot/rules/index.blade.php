@@ -195,18 +195,13 @@
                                     </svg>
                                     Edit
                                 </a>
-                                <form action="{{ route('admin.chatbot.rules.destroy', $rule) }}" method="POST" class="inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" 
-                                            class="text-red-600 hover:text-red-900 inline-flex items-center"
-                                            onclick="return confirm('Are you sure you want to delete this rule? This action cannot be undone.')">
-                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                        </svg>
-                                        Delete
-                                    </button>
-                                </form>
+                                <button onclick="openDeleteModal({{ $rule->rule_id }}, '{{ addslashes($rule->keyword) }}', {{ $rule->messages_count }})" 
+                                    class="text-red-600 hover:text-red-900 inline-flex items-center">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                    </svg>
+                                    Delete
+                                </button>
                             </div>
                         </td>
                     </tr>
@@ -285,4 +280,166 @@
         </div>
     </div>
 </div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <!-- Backdrop -->
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="closeDeleteModal()"></div>
+
+        <!-- Modal Content -->
+        <div class="relative bg-white rounded-lg w-full max-w-md shadow-2xl transform transition-all">
+            <!-- Header -->
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-xl font-bold text-gray-900">Delete Chatbot Rule</h3>
+            </div>
+
+            <!-- Body -->
+            <div class="p-6">
+                <div class="flex items-center justify-center mb-4">
+                    <div class="bg-red-100 rounded-full p-3">
+                        <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                            </path>
+                        </svg>
+                    </div>
+                </div>
+
+                <div id="deleteModalMessage" class="text-center">
+                    <!-- Dynamic message will be inserted here -->
+                </div>
+
+                <div id="warningMessage" class="mt-3 hidden">
+                    <div class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm text-amber-700" id="warningText"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-lg flex justify-end space-x-3">
+                <button onclick="closeDeleteModal()" 
+                    class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition">
+                    Cancel
+                </button>
+
+                <form id="deleteForm" method="POST" class="inline">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit"
+                        class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
+                        Delete Rule
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    #deleteModal {
+        transition: opacity 0.3s ease;
+    }
+
+    #deleteModal .bg-white {
+        animation: modalSlideIn 0.3s ease;
+    }
+
+    @keyframes modalSlideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+
+@push('scripts')
+<script>
+// Delete Modal Functions
+let deleteModal = document.getElementById('deleteModal');
+let deleteForm = document.getElementById('deleteForm');
+let deleteModalMessage = document.getElementById('deleteModalMessage');
+let warningMessage = document.getElementById('warningMessage');
+let warningText = document.getElementById('warningText');
+
+function openDeleteModal(ruleId, keyword, usageCount) {
+    // Set the form action
+    deleteForm.action = `/admin/chatbot/rules/${ruleId}`;
+    
+    // Set the message
+    let message = `Are you sure you want to delete the rule for keyword <span class="font-bold text-red-600">"${keyword}"</span>?`;
+    deleteModalMessage.innerHTML = `<p class="text-gray-700">${message}</p>`;
+    
+    // Show warning if rule has been used
+    if (parseInt(usageCount) > 0) {
+        warningMessage.classList.remove('hidden');
+        warningText.textContent = 
+            `This rule has been used ${usageCount} time(s) in chat sessions. Deleting it may affect existing conversations.`;
+    } else {
+        warningMessage.classList.add('hidden');
+    }
+    
+    // Show the modal
+    deleteModal.classList.remove('hidden');
+    
+    // Prevent body scrolling
+    document.body.style.overflow = 'hidden';
+}
+
+function closeDeleteModal() {
+    deleteModal.classList.add('hidden');
+    document.body.style.overflow = 'auto';
+}
+
+// Close modal on Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && !deleteModal.classList.contains('hidden')) {
+        closeDeleteModal();
+    }
+});
+
+// Flash messages with SweetAlert
+@if (session('success'))
+    Swal.fire({
+        icon: 'success',
+        title: 'Success!',
+        text: '{{ session('success') }}',
+        timer: 3000,
+        showConfirmButton: false,
+        toast: true,
+        position: 'top-end'
+    });
+@endif
+
+@if (session('error'))
+    Swal.fire({
+        icon: 'error',
+        title: 'Error!',
+        text: '{{ session('error') }}',
+        timer: 5000,
+        showConfirmButton: true,
+        toast: true,
+        position: 'top-end'
+    });
+@endif
+</script>
+
+<!-- Add SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+@endpush
 @endsection

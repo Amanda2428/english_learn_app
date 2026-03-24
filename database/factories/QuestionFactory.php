@@ -15,14 +15,14 @@ class QuestionFactory extends Factory
     public function definition(): array
     {
         $skill = Skill::inRandomOrder()->first() ?? Skill::factory()->create();
-        
+
         // Randomly decide if this question is associated with a video (50% chance)
         $videoId = null;
         if ($this->faker->boolean(50)) {
             $video = Video::where('skill_id', $skill->skill_id)->inRandomOrder()->first();
             $videoId = $video ? $video->video_id : null;
         }
-        
+
         return [
             'question_id' => $this->faker->unique()->numberBetween(1000, 9999),
             'skill_id' => $skill->skill_id,
@@ -41,7 +41,7 @@ class QuestionFactory extends Factory
      */
     public function easy(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'difficulty' => 'easy',
             'points' => $this->faker->numberBetween(5, 10),
         ]);
@@ -52,7 +52,7 @@ class QuestionFactory extends Factory
      */
     public function medium(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'difficulty' => 'medium',
             'points' => $this->faker->numberBetween(11, 25),
         ]);
@@ -63,7 +63,7 @@ class QuestionFactory extends Factory
      */
     public function hard(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'difficulty' => 'hard',
             'points' => $this->faker->numberBetween(26, 50),
         ]);
@@ -74,7 +74,7 @@ class QuestionFactory extends Factory
      */
     public function multipleChoice(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'question_type' => 'multiple_choice',
         ]);
     }
@@ -84,7 +84,7 @@ class QuestionFactory extends Factory
      */
     public function trueFalse(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'question_type' => 'true_false',
         ]);
     }
@@ -92,10 +92,10 @@ class QuestionFactory extends Factory
     /**
      * State for fill in the blank questions
      */
-    public function fillBlank(): static
+    public function chooseCorrectOne(): static
     {
-        return $this->state(fn (array $attributes) => [
-            'question_type' => 'fill_blank',
+        return $this->state(fn(array $attributes) => [
+            'question_type' => 'choose_correct_one',
         ]);
     }
 
@@ -107,7 +107,7 @@ class QuestionFactory extends Factory
         return $this->state(function (array $attributes) {
             $skillId = $attributes['skill_id'] ?? Skill::inRandomOrder()->first()->skill_id;
             $video = Video::where('skill_id', $skillId)->inRandomOrder()->first();
-            
+
             return [
                 'video_id' => $video ? $video->video_id : null,
             ];
@@ -119,7 +119,7 @@ class QuestionFactory extends Factory
      */
     public function withoutVideo(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'video_id' => null,
         ]);
     }
@@ -129,7 +129,7 @@ class QuestionFactory extends Factory
      */
     public function forSkill(int $skillId): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'skill_id' => $skillId,
         ]);
     }
@@ -139,7 +139,7 @@ class QuestionFactory extends Factory
      */
     public function forVideo(int $videoId): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'video_id' => $videoId,
         ]);
     }

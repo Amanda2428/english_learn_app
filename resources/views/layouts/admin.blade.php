@@ -28,11 +28,6 @@
         class="lg:hidden bg-gradient-to-r from-blue-800 to-blue-900 text-white fixed top-0 left-0 right-0 z-50 shadow-lg">
         <div class="flex items-center justify-between p-4">
             <h1 class="text-xl font-bold flex items-center">
-                <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253">
-                    </path>
-                </svg>
                 {{ config('app.name', 'E-Learn') }} Admin
             </h1>
             <button id="mobile-menu-button"
@@ -54,22 +49,15 @@
         class="fixed inset-y-0 left-0 w-64 bg-gradient-to-b from-blue-800 to-blue-900 text-white
                transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out z-50 shadow-xl">
 
-        <div class="p-6 h-full flex flex-col">
+        <div class="p-4 h-full flex flex-col">
             <!-- Logo Area -->
-            <div class="mb-8 hidden lg:block">
-                <h1 class="text-2xl font-bold flex items-center">
-                    <svg class="w-8 h-8 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253">
-                        </path>
-                    </svg>
-                    {{ config('app.name', 'E-Learn') }}
-                </h1>
-                <p class="text-blue-300 text-sm mt-1">Administration Panel</p>
+            <div class="hidden lg:block">
+                <img src="{{ asset('storage/logo2.png') }}" alt="{{ config('app.name', 'E-Learn') }} Logo"
+                    class="w-full h-auto object-contain">
             </div>
 
             <!-- Navigation -->
-            <nav class="flex-1 space-y-1 overflow-y-auto">
+            <nav class="flex-1 space-y-1">
                 <!-- Dashboard -->
                 <a href="{{ route('admin.dashboard') }}"
                     class="flex items-center px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors duration-200 {{ request()->routeIs('admin.dashboard') ? 'bg-blue-700 shadow-lg' : '' }}">
@@ -133,8 +121,7 @@
 
                 <a href="{{ route('admin.chatbot.rules.index') }}"
                     class="flex items-center px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors duration-200 {{ request()->routeIs('admin.chatbot.rules*') ? 'bg-blue-700 shadow-lg' : '' }}">
-                    <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor"
-                        viewBox="0 0 24 24">
+                    <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
                         </path>
@@ -144,8 +131,7 @@
 
                 <a href="{{ route('admin.chatbot.sessions.index') }}"
                     class="flex items-center px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors duration-200 {{ request()->routeIs('admin.chatbot.sessions*') ? 'bg-blue-700 shadow-lg' : '' }}">
-                    <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor"
-                        viewBox="0 0 24 24">
+                    <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z">
                         </path>
@@ -174,11 +160,16 @@
             <div class="mt-auto pt-4 border-t border-blue-700">
                 <div class="flex items-center space-x-3 px-2">
                     <div class="flex-shrink-0">
-                        <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center">
-                            <span class="text-white font-bold text-lg">
-                                {{ substr(Auth::user()->name, 0, 1) }}
-                            </span>
-                        </div>
+                        @if (Auth::user()->profile)
+                            <img src="{{ Storage::url(Auth::user()->profile) }}" alt="Profile Picture"
+                                class="w-10 h-10 rounded-full object-cover">
+                        @else
+                            <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center">
+                                <span class="text-white font-bold text-lg">
+                                    {{ substr(Auth::user()->name, 0, 1) }}
+                                </span>
+                            </div>
+                        @endif
                     </div>
                     <div class="flex-1 min-w-0">
                         <p class="text-sm font-semibold text-white truncate">{{ Auth::user()->name }}</p>
@@ -311,7 +302,7 @@
                                     </a>
                                 @endif
 
-                            
+
 
                                 <form method="POST" action="{{ route('logout') }}">
                                     @csrf

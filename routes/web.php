@@ -98,33 +98,46 @@ Route::middleware(['auth', 'admin'])
 
         // Chatbot
         Route::prefix('chatbot')->name('chatbot.')->group(function () {
-
             // Rules
             Route::resource('rules', AdminChatbotRuleController::class);
-
             // Sessions
             Route::resource('sessions', AdminChatbotSessionController::class)
                 ->only(['index', 'show']);
-
             // Analytics
             Route::get('analytics', [AdminChatbotSessionController::class, 'analytics'])
                 ->name('analytics');
         });
 
-        // Users
-        Route::resource('users', AdminUserController::class);
-        Route::post('users/bulk-delete', [AdminUserController::class, 'bulkDelete'])->name('users.bulk-delete');
-        Route::post('users/{user}/toggle-role', [AdminUserController::class, 'toggleRole'])->name('users.toggle-role');
-        Route::get('users/{user}/progress', [AdminUserController::class, 'progress'])
-            ->name('users.progress');
-        Route::post('users/bulk-update-role', [AdminUserController::class, 'bulkUpdateRole'])
-            ->name('users.bulk-update-role');
-        Route::get('users/export', [AdminUserController::class, 'export'])
-            ->name('users.export');
+        // Users - Reorganized for better order
+        Route::prefix('users')->name('users.')->group(function () {
+            // Custom routes that need to come BEFORE resource routes
+            Route::get('export', [AdminUserController::class, 'export'])->name('export');
+            Route::post('bulk-delete', [AdminUserController::class, 'bulkDelete'])->name('bulk-delete');
+            Route::post('bulk-update-role', [AdminUserController::class, 'bulkUpdateRole'])->name('bulk-update-role');
+            
+            // Resource routes (these will handle index, create, store, show, edit, update, destroy)
+            Route::get('/', [AdminUserController::class, 'index'])->name('index');
+            Route::get('/create', [AdminUserController::class, 'create'])->name('create');
+            Route::post('/', [AdminUserController::class, 'store'])->name('store');
+            Route::get('/{user}', [AdminUserController::class, 'show'])->name('show');
+            Route::get('/{user}/edit', [AdminUserController::class, 'edit'])->name('edit');
+            Route::put('/{user}', [AdminUserController::class, 'update'])->name('update');
+            Route::delete('/{user}', [AdminUserController::class, 'destroy'])->name('destroy');
+            
+            // Additional user-specific routes (should come after the resource routes)
+            Route::get('/{user}/progress', [AdminUserController::class, 'progress'])->name('progress');
+            Route::post('/{user}/toggle-role', [AdminUserController::class, 'toggleRole'])->name('toggle-role');
+        });
 
         // Skills
         Route::resource('skills', AdminSkillController::class);
         Route::post('skills/reorder', [AdminSkillController::class, 'reorder'])->name('skills.reorder');
+        
+        // API routes for AJAX calls
+        Route::prefix('api')->name('api.')->group(function () {
+            Route::get('/skills/{skill}/levels', [App\Http\Controllers\Admin\QuestionController::class, 'getLevelsBySkill']);
+            Route::get('/videos', [App\Http\Controllers\Admin\QuestionController::class, 'getVideosBySkill']);
+        });
     });
 
 // ==========================================

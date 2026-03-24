@@ -172,11 +172,11 @@
                                         <p class="text-sm font-semibold text-gray-900 skill-name">{{ $skill->skill_name }}</p>
                                     </div>
                                 </div>
-                            </td>
+                             </td>
 
                             <td class="px-6 py-4 text-sm text-gray-600 max-w-xs skill-description">
                                 {{ Str::limit($skill->description, 50) ?: 'No description' }}
-                            </td>
+                             </td>
 
                             <!-- Levels Column -->
                             <td class="px-6 py-4">
@@ -196,7 +196,7 @@
                                 @else
                                     <span class="text-gray-400 text-sm">No levels</span>
                                 @endif
-                            </td>
+                             </td>
 
                             <td class="px-6 py-4 whitespace-nowrap text-center">
                                 @if($skill->status)
@@ -208,19 +208,19 @@
                                         Inactive
                                     </span>
                                 @endif
-                            </td>
+                             </td>
 
                             <td class="px-6 py-4 whitespace-nowrap text-center">
                                 <span class="inline-flex px-2.5 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-semibold">
                                     {{ $skill->videos_count ?? 0 }}
                                 </span>
-                            </td>
+                             </td>
 
                             <td class="px-6 py-4 whitespace-nowrap text-center">
                                 <span class="inline-flex px-2.5 py-1 rounded-full bg-green-100 text-green-800 text-xs font-semibold">
                                     {{ $skill->questions_count ?? 0 }}
                                 </span>
-                            </td>
+                             </td>
 
                             <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                                 <div class="flex items-center justify-center gap-3">
@@ -239,7 +239,7 @@
                                         Delete
                                     </button>
                                 </div>
-                            </td>
+                             </td>
                         </tr>
                     @empty
                         <tr>
@@ -351,7 +351,6 @@
 @endsection
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 
 <script>
@@ -491,7 +490,7 @@ function filterSkills() {
             const tbody = document.getElementById('skillsTableBody');
             const tr = document.createElement('tr');
             tr.id = 'no-results-row';
-            tr.innerHTML = '<td colspan="8" class="px-6 py-10 text-center text-gray-500">No skills match your filters.</td>';
+            tr.innerHTML = '<td colspan="8" class="px-6 py-10 text-center text-gray-500">No skills match your filters.';
             tbody.appendChild(tr);
         }
     } else if (noResultsRow) {
@@ -519,17 +518,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         'X-CSRF-TOKEN': '{{ csrf_token() }}'
                     },
                     body: JSON.stringify({ order: skillIds })
-                }).then(response => {
-                    if (response.ok) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Order updated!',
-                            toast: true,
-                            position: 'top-end',
-                            showConfirmButton: false,
-                            timer: 3000
-                        });
-                    }
                 });
             }
         });
@@ -548,30 +536,14 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
-// Flash messages
-@if(session('success'))
-    Swal.fire({
-        icon: 'success',
-        title: 'Success!',
-        text: '{{ session('success') }}',
-        timer: 3000,
-        showConfirmButton: false,
-        toast: true,
-        position: 'top-end'
-    });
-@endif
+// REMOVED: Flash messages alerts - no more alerts showing
+// @if(session('success'))
+//     alert('{{ session('success') }}');
+// @endif
 
-@if(session('error'))
-    Swal.fire({
-        icon: 'error',
-        title: 'Error!',
-        text: '{{ session('error') }}',
-        timer: 5000,
-        showConfirmButton: true,
-        toast: true,
-        position: 'top-end'
-    });
-@endif
+// @if(session('error'))
+//     alert('{{ session('error') }}');
+// @endif
 </script>
 
 <style>

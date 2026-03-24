@@ -180,7 +180,8 @@ class DashboardController extends Controller
             'name' => $currentUser->name ?? '-',
             'email' => $currentUser->email ?? '-',
             'role' => $currentUser && (int)$currentUser->role === 1 ? 'Administrator' : 'User',
-            'profile' => $currentUser->profile ?? 'No profile bio added yet.',
+            'profile' => $currentUser->profile ?? null, 
+            'bio' => $currentUser->bio ?? 'No profile bio added yet.',
             'joined' => $currentUser?->created_at ? $currentUser->created_at->format('d M Y') : '-',
         ];
 
