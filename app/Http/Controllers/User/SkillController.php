@@ -116,7 +116,7 @@ class SkillController extends Controller
         if (!empty($incorrectQuestionIds)) {
             return redirect()->back()
                 ->withInput()
-                ->with('error', 'အဖြေအချို့ မှားယွင်းနေပါတယ်။ ပြန်ကြိုးစားကြည့်ပါ။')
+                ->with('error', 'Incorrect answers! Please try again.')
                 ->with('incorrect_questions', $incorrectQuestionIds);
         }
 
