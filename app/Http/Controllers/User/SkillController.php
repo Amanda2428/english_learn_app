@@ -76,57 +76,67 @@ class SkillController extends Controller
     public function submitPractice(Request $request, Skill $skill)
     {
         $user = Auth::user();
-        $submittedAnswers = $request->input('answers', []);
-
+        $submittedAnswers = $request->input('answers', []); 
         $incorrectQuestionIds = [];
-        $totalPointsAvailable = 0;
+        $totalNewPoints = 0;
 
-        // 1. Validate answers
-        foreach ($submittedAnswers as $questionId => $answerId) {
+        $progress = UserProgress::firstOrCreate(
+            ['user_id' => $user->id, 'skill_id' => $skill->skill_id],
+            ['level_id' => $skill->level_id, 'completed_questions' => []]
+        );
+
+        $completedIds = is_array($progress->completed_questions) 
+                ? $progress->completed_questions 
+                : [];
+
+        foreach ($submittedAnswers as $questionId => $answerData) {
             $question = Question::find($questionId);
-            $totalPointsAvailable += $question->points ?? 0;
 
-            $isCorrect = Answer::where('answer_id', $answerId)
-                ->where('question_id', $questionId)
+            $correctAnswerIds = Answer::where('question_id', $questionId)
                 ->where('is_correct', true)
-                ->exists();
+                ->pluck('answer_id')
+                ->toArray();
 
-            if (!$isCorrect) {
+            $userAnswerIds = is_array($answerData) ? array_map('intval', $answerData) : [(int)$answerData];
+
+            sort($correctAnswerIds);
+            sort($userAnswerIds);
+
+            if ($correctAnswerIds !== $userAnswerIds) {
                 $incorrectQuestionIds[] = $questionId;
+            } else {
+
+                if (!in_array($questionId, $completedIds)) {
+                    $completedIds[] = (int)$questionId;
+                    $totalNewPoints += $question->points ?? 0;
+                }
             }
         }
 
-        // 2. FAIL: If any are wrong, redirect back with incorrect IDs
         if (!empty($incorrectQuestionIds)) {
             return redirect()->back()
                 ->withInput()
-                ->with('error', 'Some answers are incorrect. Please try again!')
+                ->with('error', 'အဖြေအချို့ မှားယွင်းနေပါတယ်။ ပြန်ကြိုးစားကြည့်ပါ။')
                 ->with('incorrect_questions', $incorrectQuestionIds);
         }
 
-        // 3. SUCCESS: All correct, update progress
         $timeSpentSeconds = $request->input('time_spent', 0);
-        $timeSpentMinutes = max(1, round($timeSpentSeconds / 60));
-
-        $progress = UserProgress::firstOrNew([
-            'user_id' => $user->id,
-            'skill_id' => $skill->skill_id,
-            'level_id' => $skill->level_id,
-        ]);
-
+        $progress->completed_questions = $completedIds;
+        $progress->points_earned += $totalNewPoints;
+        $progress->questions_answered = count($completedIds);
+        $progress->time_spent_minutes += max(1, round($timeSpentSeconds / 60));
         $progress->total_questions_in_skill = $skill->questions()->count();
-        $progress->correct_answers += count($submittedAnswers);
-        $progress->questions_answered += count($submittedAnswers);
-        $progress->points_earned += $totalPointsAvailable;
-        $progress->time_spent_minutes += $timeSpentMinutes;
 
-        $progress->completion_percentage = min(100, ($progress->questions_answered / $progress->total_questions_in_skill) * 100);
+        $progress->completion_percentage = ($progress->total_questions_in_skill > 0)
+            ? ($progress->questions_answered / $progress->total_questions_in_skill) * 100
+            : 0;
+
         $progress->status = ($progress->completion_percentage >= 100) ? 'completed' : 'in_progress';
         if ($progress->status === 'completed' && !$progress->completed_at) $progress->completed_at = now();
 
         $progress->save();
 
         return redirect()->route('user.skills.show', $skill)
-            ->with('success', "Perfect! You earned $totalPointsAvailable points.");
+            ->with('success', "Perfect! You earned $totalNewPoints points.");
     }
 }

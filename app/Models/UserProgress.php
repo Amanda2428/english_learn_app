@@ -12,20 +12,9 @@ class UserProgress extends Model
     protected $primaryKey = 'progress_id';
     
     protected $fillable = [
-        'user_id',
-        'level_id',
-        'skill_id',
-        'points_earned',
-        'completion_percentage',
-        'videos_watched',
-        'total_videos_in_skill',
-        'questions_answered',
-        'correct_answers',
-        'total_questions_in_skill',
-        'time_spent_minutes',
-        'status',
-        'started_at',
-        'completed_at',
+        'user_id', 'level_id', 'skill_id', 'completed_questions', 
+        'points_earned', 'completion_percentage', 'questions_answered', 
+        'correct_answers', 'total_questions_in_skill', 'status', 'completed_at'
     ];
 
     protected $casts = [
@@ -33,6 +22,7 @@ class UserProgress extends Model
         'completed_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+        'completed_questions' => 'array',
     ];
 
     /**
