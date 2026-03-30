@@ -197,31 +197,31 @@ class QuestionController extends Controller
 
         return response()->json($videos);
     }
-    
+
     /**
- * Get a single video by ID (AJAX).
- */
-public function getVideoById($videoId)
-{
-    $video = Video::with('skill')->findOrFail($videoId);
-    
-    // Extract level_id from description
-    $levelId = null;
-    if (preg_match('/<!-- LEVEL:(\d+) -->/', $video->description, $matches)) {
-        $levelId = (int) $matches[1];
+     * Get a single video by ID (AJAX).
+     */
+    public function getVideoById($videoId)
+    {
+        $video = Video::with('skill')->findOrFail($videoId);
+
+        // Extract level_id from description
+        $levelId = null;
+        if (preg_match('/<!-- LEVEL:(\d+) -->/', $video->description, $matches)) {
+            $levelId = (int) $matches[1];
+        }
+
+        return response()->json([
+            'video_id' => (int) $video->video_id,
+            'title' => $video->title,
+            'description' => $this->cleanVideoDescription($video->description),
+            'duration' => $this->formatDuration($video->duration),
+            'duration_raw' => $video->duration,
+            'skill_id' => $video->skill_id,
+            'skill_name' => $video->skill->skill_name ?? null,
+            'level_id' => $levelId,
+        ]);
     }
-    
-    return response()->json([
-        'video_id' => (int) $video->video_id,
-        'title' => $video->title,
-        'description' => $this->cleanVideoDescription($video->description),
-        'duration' => $this->formatDuration($video->duration),
-        'duration_raw' => $video->duration,
-        'skill_id' => $video->skill_id,
-        'skill_name' => $video->skill->skill_name ?? null,
-        'level_id' => $levelId,
-    ]);
-}
     /**
      * Get levels by skill ID (AJAX).
      */
@@ -269,7 +269,6 @@ public function getVideoById($videoId)
             ->select('video_id', 'title', 'description', 'duration', 'skill_id')
             ->get()
             ->map(function ($video) {
-                // Extract level_id from description
                 $levelId = null;
                 if (preg_match('/<!-- LEVEL:(\d+) -->/', $video->description, $matches)) {
                     $levelId = (int) $matches[1];
@@ -359,8 +358,6 @@ public function getVideoById($videoId)
                 $answer['is_correct'] = false;
             }
         }
-
-        // If no correct answer found, set the first answer as correct
         if (!$firstCorrectFound && count($answers) > 0) {
             $answers[0]['is_correct'] = true;
         }

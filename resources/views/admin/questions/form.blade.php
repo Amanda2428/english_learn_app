@@ -295,7 +295,6 @@
                         is_correct: false
                     }
                 ];
-                // Set first answer as correct by default for single correct mode
                 if (!allowMultipleCorrect) {
                     answers[0].is_correct = true;
                 }
@@ -564,13 +563,11 @@
                     });
             }
 
-            // Function to refresh video selector when skill changes
             function refreshVideoSelector() {
                 const skillId = document.getElementById('skill_id').value;
                 const hasVideoChecked = document.getElementById('has_video')?.checked;
 
                 if (hasVideoChecked && skillId) {
-                    // Dispatch event to Alpine component to update filters
                     const event = new CustomEvent('skill-changed', {
                         detail: {
                             skillId: skillId
@@ -590,20 +587,17 @@
                     hasVideoCheckbox.addEventListener('change', function() {
                         if (this.checked) {
                             videoSelectorContainer.classList.remove('hidden');
-                            // Refresh video selector with current skill
                             setTimeout(() => {
                                 refreshVideoSelector();
                             }, 100);
                         } else {
                             videoSelectorContainer.classList.add('hidden');
-                            // Clear video selection
                             const event = new CustomEvent('clear-video-selection');
                             window.dispatchEvent(event);
                         }
                     });
                 }
 
-                // When skill changes, refresh video selector if video association is enabled
                 if (skillSelect) {
                     skillSelect.addEventListener('change', function() {
                         loadLevels(this.value);
@@ -613,7 +607,6 @@
                     });
                 }
 
-                // Store selected video ID globally for persistence
                 const selectedVideoId = '{{ old('video_id', $question->video_id ?? '') }}';
                 if (selectedVideoId) {
                     window.selectedVideoId = selectedVideoId;
@@ -630,14 +623,12 @@
                 // Initialize video selector
                 initializeVideoSelector();
 
-                // Load levels if skill is pre-selected
                 if (skillSelect && skillSelect.value) {
                     setTimeout(() => {
                         loadLevels(skillSelect.value);
                     }, 100);
                 }
 
-                // Listen for skill change events from Alpine component
                 window.addEventListener('skill-changed', function(e) {
                     const videoSelectorWrapper = document.querySelector('[x-data="videoSelector()"]');
                     if (videoSelectorWrapper && videoSelectorWrapper.__x) {
@@ -651,7 +642,6 @@
                     }
                 });
 
-                // Listen for clear video selection events
                 window.addEventListener('clear-video-selection', function() {
                     const videoSelectorWrapper = document.querySelector('[x-data="videoSelector()"]');
                     if (videoSelectorWrapper && videoSelectorWrapper.__x) {
@@ -659,12 +649,10 @@
                     }
                 });
 
-                // Listen for video selected events to update hidden input
                 window.addEventListener('video-selected', function(e) {
                     console.log('Video selected:', e.detail);
                 });
 
-                // Set selected video if exists
                 setTimeout(() => {
                     const videoSelectorWrapper = document.querySelector('[x-data="videoSelector()"]');
                     if (videoSelectorWrapper && videoSelectorWrapper.__x && window.selectedVideoId) {

@@ -151,13 +151,11 @@
 
             async loadAllData() {
                 try {
-                    // Load levels and videos in parallel
                     await Promise.all([
                         this.fetchLevels(),
                         this.fetchVideos()
                     ]);
 
-                    // After data is loaded, set up the selected video
                     await this.setupSelectedVideo();
 
                 } catch (error) {
@@ -194,7 +192,6 @@
             },
 
             processVideo(video) {
-                // Extract level_id from description
                 let levelId = video.level_id;
                 if (!levelId && video.description) {
                     const match = video.description.match(/<!-- LEVEL:(\d+) -->/);
@@ -214,17 +211,14 @@
             async setupSelectedVideo() {
                 if (!this.selectedVideo) return;
 
-                // Try to find video in current list
                 let video = this.videos.find(v => v.video_id === this.selectedVideo);
 
-                // If not found, fetch it separately
                 if (!video) {
                     try {
                         const response = await fetch(`/admin/api/video/${this.selectedVideo}`);
                         if (response.ok) {
                             const data = await response.json();
                             video = this.processVideo(data);
-                            // Add to videos list for future reference
                             this.videos.push(video);
                         }
                     } catch (error) {
@@ -232,7 +226,6 @@
                     }
                 }
 
-                // Update selected video details
                 if (video) {
                     this.updateSelectedVideoDetails(video);
                 }
