@@ -63,13 +63,12 @@
                         <label for="skill_id" class="block text-sm font-semibold text-gray-700 mb-2">
                             Skill <span class="text-red-500">*</span>
                         </label>
-                        <select name="skill_id" id="skill_id" onchange="loadLevels(this.value)"
+                        <select name="skill_id" id="skill_id"
                             class="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('skill_id') border-red-500 @else border-gray-300 @enderror"
                             required>
                             <option value="">Select a skill</option>
                             @foreach (App\Models\Skill::orderBy('skill_name')->get() as $skill)
                                 <option value="{{ $skill->skill_id }}"
-                                    data-levels="{{ $skill->levels->pluck('level_id')->join(',') }}"
                                     {{ (old('skill_id') ?? ($question->skill_id ?? '')) == $skill->skill_id ? 'selected' : '' }}>
                                     {{ $skill->skill_name }}
                                 </option>
@@ -164,7 +163,7 @@
                         <label for="question_type" class="block text-sm font-semibold text-gray-700 mb-2">
                             Question Type <span class="text-red-500">*</span>
                         </label>
-                        <select name="question_type" id="question_type" onchange="toggleQuestionType(this.value)"
+                        <select name="question_type" id="question_type"
                             class="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('question_type') border-red-500 @else border-gray-300 @enderror"
                             required>
                             <option value="multiple_choice"
@@ -173,15 +172,14 @@
                             <option value="true_false"
                                 {{ (old('question_type') ?? ($question->question_type ?? '')) == 'true_false' ? 'selected' : '' }}>
                                 True/False</option>
-                            <option value="choose_correct"
-                                {{ (old('question_type') ?? ($question->question_type ?? '')) == 'choose_correct' ? 'selected' : '' }}>
+                            <option value="choose_correct_one"
+                                {{ (old('question_type') ?? ($question->question_type ?? '')) == 'choose_correct_one' ? 'selected' : '' }}>
                                 Choose Correct One</option>
                         </select>
                         @error('question_type')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
-
                     <!-- Multiple Correct Answers Toggle (for Multiple Choice) -->
                     <div id="multipleCorrectToggle"
                         class="md:col-span-2 {{ (old('question_type') ?? ($question->question_type ?? '')) == 'multiple_choice' ? '' : 'hidden' }}">
@@ -205,8 +203,8 @@
                     <div class="md:col-span-2">
                         <div class="bg-gray-50 rounded-xl p-4">
                             <div class="flex items-center">
-                                <input type="checkbox" id="has_video" x-data x-init="$el.checked = {{ isset($question) && $question->video_id ? 'true' : 'false' }}"
-                                    @change="document.getElementById('videoSelector').classList.toggle('hidden')"
+                                <input type="checkbox" id="has_video"
+                                    {{ old('has_video') == '1' || (isset($question) && $question->video_id) || old('video_id') ? 'checked' : '' }}
                                     class="h-5 w-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500">
                                 <label for="has_video" class="ml-3 text-sm font-semibold text-gray-700">
                                     Associate with a video
@@ -219,16 +217,19 @@
                     </div>
 
                     <!-- Video Selector (Hidden by default) -->
-                    <div id="videoSelector"
-                        class="md:col-span-2 {{ isset($question) && $question->video_id ? '' : 'hidden' }}">
+                    <div id="videoSelectorContainer"
+                        class="md:col-span-2 {{ old('has_video') == '1' || (isset($question) && $question->video_id) || old('video_id') ? '' : 'hidden' }}">
                         <div class="bg-gray-50 rounded-xl p-4 border border-gray-200">
                             <label class="block text-sm font-semibold text-gray-700 mb-3">
                                 Select Video
                             </label>
+                            @php
+                                $selectedVideoId = old('video_id') ?? ($question->video_id ?? null);
+                                $skillId = old('skill_id') ?? ($question->skill_id ?? null);
+                            @endphp
                             @include('admin.questions._video_select', [
-                                'selectedVideoIds' =>
-                                    isset($question) && $question->video_id ? [$question->video_id] : [],
-                                'skillId' => old('skill_id') ?? ($question->skill_id ?? null),
+                                'selectedVideoIds' => $selectedVideoId ? [$selectedVideoId] : [],
+                                'skillId' => $skillId,
                             ])
                         </div>
                     </div>
@@ -282,8 +283,7 @@
 
             @if (isset($question) && $question->answers->count() > 0)
                 // Load existing answers
-                answers = @json($question->answers->map->only(['answer_id','answer_text','is_correct'])->values());
-                  
+                answers = @json($question->answers->map->only(['answer_id', 'answer_text', 'is_correct'])->values());
             @else
                 // Initialize with 2 empty answers
                 answers = [{
@@ -327,26 +327,26 @@
                             </div>
                             <div class="flex items-center gap-3">
                                 ${isMultipleChoice ? `
-                                    <label class="flex items-center cursor-pointer">
-                                        <input type="${isMultipleCorrect ? 'checkbox' : 'radio'}" 
-                                               name="${isMultipleCorrect ? 'correct_answers[' + index + ']' : 'correct_answer'}"
-                                               value="${index}"
-                                               ${isCorrect ? 'checked' : ''}
-                                               onchange="${isMultipleCorrect ? `toggleCorrectCheckbox(${index})` : `setSingleCorrectAnswer(${index})`}"
-                                               class="h-5 w-5 text-blue-600 ${isMultipleCorrect ? 'rounded' : 'rounded-full'} border-gray-300 focus:ring-blue-500">
-                                        <span class="ml-2 text-sm text-gray-600">Correct</span>
-                                    </label>
-                                ` : `
-                                    <label class="flex items-center cursor-pointer">
-                                        <input type="radio" 
-                                               name="correct_answer"
-                                               value="${index}"
-                                               ${isCorrect ? 'checked' : ''}
-                                               onchange="setSingleCorrectAnswer(${index})"
-                                               class="h-5 w-5 text-blue-600 rounded-full border-gray-300 focus:ring-blue-500">
-                                        <span class="ml-2 text-sm text-gray-600">Correct</span>
-                                    </label>
-                                `}
+                                            <label class="flex items-center cursor-pointer">
+                                                <input type="${isMultipleCorrect ? 'checkbox' : 'radio'}" 
+                                                       name="${isMultipleCorrect ? 'correct_answers[' + index + ']' : 'correct_answer'}"
+                                                       value="${index}"
+                                                       ${isCorrect ? 'checked' : ''}
+                                                       onchange="${isMultipleCorrect ? `toggleCorrectCheckbox(${index})` : `setSingleCorrectAnswer(${index})`}"
+                                                       class="h-5 w-5 text-blue-600 ${isMultipleCorrect ? 'rounded' : 'rounded-full'} border-gray-300 focus:ring-blue-500">
+                                                <span class="ml-2 text-sm text-gray-600">Correct</span>
+                                            </label>
+                                        ` : `
+                                            <label class="flex items-center cursor-pointer">
+                                                <input type="radio" 
+                                                       name="correct_answer"
+                                                       value="${index}"
+                                                       ${isCorrect ? 'checked' : ''}
+                                                       onchange="setSingleCorrectAnswer(${index})"
+                                                       class="h-5 w-5 text-blue-600 rounded-full border-gray-300 focus:ring-blue-500">
+                                                <span class="ml-2 text-sm text-gray-600">Correct</span>
+                                            </label>
+                                        `}
                                 <button type="button" 
                                         onclick="removeAnswer(${index})"
                                         class="text-red-600 hover:text-red-800 p-1">
@@ -529,7 +529,7 @@
 
             function loadLevels(skillId) {
                 const levelSelect = document.getElementById('level_id');
-                
+
                 if (!skillId) {
                     levelSelect.innerHTML = '<option value="">Select a level (optional)</option>';
                     return;
@@ -547,13 +547,13 @@
                     })
                     .then(levels => {
                         let options = '<option value="">Select a level (optional)</option>';
-                        const currentLevelId = '{{ $question->level_id ?? '' }}';
-                        
+                        const currentLevelId = '{{ old('level_id', $question->level_id ?? '') }}';
+
                         levels.forEach(level => {
                             const selected = (currentLevelId && level.level_id == currentLevelId) ? 'selected' : '';
                             options += `<option value="${level.level_id}" ${selected}>${level.level_name}</option>`;
                         });
-                        
+
                         levelSelect.innerHTML = options;
                         levelSelect.disabled = false;
                     })
@@ -564,6 +564,62 @@
                     });
             }
 
+            // Function to refresh video selector when skill changes
+            function refreshVideoSelector() {
+                const skillId = document.getElementById('skill_id').value;
+                const hasVideoChecked = document.getElementById('has_video')?.checked;
+
+                if (hasVideoChecked && skillId) {
+                    // Dispatch event to Alpine component to update filters
+                    const event = new CustomEvent('skill-changed', {
+                        detail: {
+                            skillId: skillId
+                        }
+                    });
+                    window.dispatchEvent(event);
+                }
+            }
+
+            function initializeVideoSelector() {
+                const hasVideoCheckbox = document.getElementById('has_video');
+                const videoSelectorContainer = document.getElementById('videoSelectorContainer');
+                const skillSelect = document.getElementById('skill_id');
+
+                if (hasVideoCheckbox && videoSelectorContainer) {
+                    // Handle checkbox change
+                    hasVideoCheckbox.addEventListener('change', function() {
+                        if (this.checked) {
+                            videoSelectorContainer.classList.remove('hidden');
+                            // Refresh video selector with current skill
+                            setTimeout(() => {
+                                refreshVideoSelector();
+                            }, 100);
+                        } else {
+                            videoSelectorContainer.classList.add('hidden');
+                            // Clear video selection
+                            const event = new CustomEvent('clear-video-selection');
+                            window.dispatchEvent(event);
+                        }
+                    });
+                }
+
+                // When skill changes, refresh video selector if video association is enabled
+                if (skillSelect) {
+                    skillSelect.addEventListener('change', function() {
+                        loadLevels(this.value);
+                        if (hasVideoCheckbox && hasVideoCheckbox.checked) {
+                            refreshVideoSelector();
+                        }
+                    });
+                }
+
+                // Store selected video ID globally for persistence
+                const selectedVideoId = '{{ old('video_id', $question->video_id ?? '') }}';
+                if (selectedVideoId) {
+                    window.selectedVideoId = selectedVideoId;
+                }
+            }
+
             document.addEventListener('DOMContentLoaded', function() {
                 const questionType = document.getElementById('question_type').value;
                 const skillSelect = document.getElementById('skill_id');
@@ -571,27 +627,50 @@
                 toggleQuestionType(questionType);
                 renderAnswers();
 
-                @if (isset($question) && $question->video_id)
-                    document.getElementById('has_video').checked = true;
-                    document.getElementById('videoSelector').classList.remove('hidden');
-                @endif
+                // Initialize video selector
+                initializeVideoSelector();
 
+                // Load levels if skill is pre-selected
                 if (skillSelect && skillSelect.value) {
                     setTimeout(() => {
                         loadLevels(skillSelect.value);
                     }, 100);
                 }
 
-                if (skillSelect) {
-                    skillSelect.addEventListener('change', function() {
-                        loadLevels(this.value);
-                        const hasVideoChecked = document.getElementById('has_video')?.checked;
-                        if (hasVideoChecked && window.videoSelectorComponent) {
-                            window.videoSelectorComponent.filters.skill_id = this.value;
-                            window.videoSelectorComponent.fetchVideos();
+                // Listen for skill change events from Alpine component
+                window.addEventListener('skill-changed', function(e) {
+                    const videoSelectorWrapper = document.querySelector('[x-data="videoSelector()"]');
+                    if (videoSelectorWrapper && videoSelectorWrapper.__x) {
+                        const component = videoSelectorWrapper.__x;
+                        if (component.filters) {
+                            component.filters.skill_id = e.detail.skillId;
+                            if (component.fetchVideos) {
+                                component.fetchVideos();
+                            }
                         }
-                    });
-                }
+                    }
+                });
+
+                // Listen for clear video selection events
+                window.addEventListener('clear-video-selection', function() {
+                    const videoSelectorWrapper = document.querySelector('[x-data="videoSelector()"]');
+                    if (videoSelectorWrapper && videoSelectorWrapper.__x) {
+                        videoSelectorWrapper.__x.selectedVideo = null;
+                    }
+                });
+
+                // Listen for video selected events to update hidden input
+                window.addEventListener('video-selected', function(e) {
+                    console.log('Video selected:', e.detail);
+                });
+
+                // Set selected video if exists
+                setTimeout(() => {
+                    const videoSelectorWrapper = document.querySelector('[x-data="videoSelector()"]');
+                    if (videoSelectorWrapper && videoSelectorWrapper.__x && window.selectedVideoId) {
+                        videoSelectorWrapper.__x.selectedVideo = parseInt(window.selectedVideoId);
+                    }
+                }, 500);
 
                 const multipleCorrectToggle = document.getElementById('allow_multiple_correct');
                 if (multipleCorrectToggle) {
@@ -612,19 +691,6 @@
                             }
                         }
                         renderAnswers();
-                    });
-                }
-
-                const hasVideoCheckbox = document.getElementById('has_video');
-                const videoSelector = document.getElementById('videoSelector');
-
-                if (hasVideoCheckbox) {
-                    hasVideoCheckbox.addEventListener('change', function() {
-                        if (this.checked) {
-                            videoSelector.classList.remove('hidden');
-                        } else {
-                            videoSelector.classList.add('hidden');
-                        }
                     });
                 }
             });

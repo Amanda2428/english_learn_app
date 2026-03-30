@@ -442,7 +442,7 @@
                 </div>
                 <div class="p-3 sm:p-4">
                     <h3 class="font-bold text-gray-900 text-sm sm:text-base mb-1">{{ $video->title }}</h3>
-                    <p class="text-xs sm:text-sm text-gray-600 mb-2">{{ Str::limit($video->description, 60) }}</p>
+                    <p class="text-xs sm:text-sm text-gray-600 mb-2">{{ Str::limit($video->clean_description, 60) }}</p>
                     <div class="flex items-center justify-between">
                         <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">{{ $video->skill->skill_name ?? 'General' }}</span>
                         <span class="text-xs text-gray-500">{{ $video->duration }}</span>

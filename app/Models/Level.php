@@ -22,6 +22,7 @@ class Level extends Model
     {
         return $this->hasMany(User::class, 'level_id', 'level_id');
     }
+
     public function skills()
     {
         return $this->belongsToMany(
@@ -32,5 +33,9 @@ class Level extends Model
             'level_id',
             'skill_id'
         );
+    }
+    public function getCleanDescriptionAttribute()
+    {
+        return preg_replace('//', '', $this->description);
     }
 }

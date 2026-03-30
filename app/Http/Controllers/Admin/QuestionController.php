@@ -15,36 +15,36 @@ class QuestionController extends Controller
     /**
      * Display a listing of the questions.
      */
-public function index(Request $request)
-{
-    $query = Question::with(['skill', 'level', 'video', 'answers']); 
+    public function index(Request $request)
+    {
+        $query = Question::with(['skill', 'level', 'video', 'answers']);
 
-    if ($request->filled('skill_id')) {
-        $query->where('skill_id', $request->skill_id);
-    }
-
-    if ($request->filled('level_id')) {
-        $query->where('level_id', $request->level_id);
-    }
-
-    if ($request->filled('difficulty')) {
-        $query->where('difficulty', $request->difficulty);
-    }
-
-    if ($request->filled('has_video')) {
-        if ($request->has_video === '1') {
-            $query->whereNotNull('video_id');
-        } elseif ($request->has_video === '0') {
-            $query->whereNull('video_id');
+        if ($request->filled('skill_id')) {
+            $query->where('skill_id', $request->skill_id);
         }
+
+        if ($request->filled('level_id')) {
+            $query->where('level_id', $request->level_id);
+        }
+
+        if ($request->filled('difficulty')) {
+            $query->where('difficulty', $request->difficulty);
+        }
+
+        if ($request->filled('has_video')) {
+            if ($request->has_video === '1') {
+                $query->whereNotNull('video_id');
+            } elseif ($request->has_video === '0') {
+                $query->whereNull('video_id');
+            }
+        }
+
+        $questions = $query->orderBy('question_id', 'desc')->paginate(15);
+        $skills = Skill::orderBy('skill_name')->get();
+        $levels = Level::orderBy('level_order')->get();
+
+        return view('admin.questions.index', compact('questions', 'skills', 'levels'));
     }
-
-    $questions = $query->orderBy('question_id', 'desc')->paginate(15);
-    $skills = Skill::orderBy('skill_name')->get();
-    $levels = Level::orderBy('level_order')->get();
-
-    return view('admin.questions.index', compact('questions', 'skills', 'levels'));
-}
 
     /**
      * Show the form for creating a new question.
@@ -68,7 +68,7 @@ public function index(Request $request)
             'question_text' => 'required|string',
             'difficulty' => 'required|in:easy,medium,hard',
             'points' => 'required|integer|min:0',
-            'question_type' => 'required|in:multiple_choice,true_false,choose_correct',
+            'question_type' => 'required|in:multiple_choice,true_false,choose_correct_one',
             'allow_multiple_correct' => 'nullable|boolean',
             'video_id' => 'nullable|exists:videos,video_id',
             'answers' => 'required|array|min:2',
@@ -126,7 +126,7 @@ public function index(Request $request)
             'question_text' => 'required|string',
             'difficulty' => 'required|in:easy,medium,hard',
             'points' => 'required|integer|min:0',
-            'question_type' => 'required|in:multiple_choice,true_false,choose_correct',
+            'question_type' => 'required|in:multiple_choice,true_false,choose_correct_one',
             'allow_multiple_correct' => 'nullable|boolean',
             'video_id' => 'nullable|exists:videos,video_id',
             'answers' => 'required|array|min:2',
@@ -134,7 +134,6 @@ public function index(Request $request)
             'answers.*.is_correct' => 'nullable|boolean',
             'answers.*.answer_id' => 'nullable|exists:answers,answer_id',
         ]);
-
         DB::transaction(function () use ($validated, $question) {
             $questionText = $this->cleanQuestionText($validated['question_text']);
 
@@ -147,7 +146,7 @@ public function index(Request $request)
                 'skill_id' => $validated['skill_id'],
                 'level_id' => $validated['level_id'] ?? null,
                 'video_id' => $validated['video_id'] ?? null,
-                'question_text' => $questionText, 
+                'question_text' => $questionText,
                 'difficulty' => $validated['difficulty'],
                 'points' => $validated['points'],
                 'question_type' => $validated['question_type'],
@@ -198,7 +197,31 @@ public function index(Request $request)
 
         return response()->json($videos);
     }
-
+    
+    /**
+ * Get a single video by ID (AJAX).
+ */
+public function getVideoById($videoId)
+{
+    $video = Video::with('skill')->findOrFail($videoId);
+    
+    // Extract level_id from description
+    $levelId = null;
+    if (preg_match('/<!-- LEVEL:(\d+) -->/', $video->description, $matches)) {
+        $levelId = (int) $matches[1];
+    }
+    
+    return response()->json([
+        'video_id' => (int) $video->video_id,
+        'title' => $video->title,
+        'description' => $this->cleanVideoDescription($video->description),
+        'duration' => $this->formatDuration($video->duration),
+        'duration_raw' => $video->duration,
+        'skill_id' => $video->skill_id,
+        'skill_name' => $video->skill->skill_name ?? null,
+        'level_id' => $levelId,
+    ]);
+}
     /**
      * Get levels by skill ID (AJAX).
      */
@@ -246,14 +269,21 @@ public function index(Request $request)
             ->select('video_id', 'title', 'description', 'duration', 'skill_id')
             ->get()
             ->map(function ($video) {
+                // Extract level_id from description
+                $levelId = null;
+                if (preg_match('/<!-- LEVEL:(\d+) -->/', $video->description, $matches)) {
+                    $levelId = (int) $matches[1];
+                }
+
                 return [
-                    'video_id' => $video->video_id,
+                    'video_id' => (int) $video->video_id,
                     'title' => $video->title,
                     'description' => $this->cleanVideoDescription($video->description),
                     'duration' => $this->formatDuration($video->duration),
                     'duration_raw' => $video->duration,
                     'skill_id' => $video->skill_id,
                     'skill_name' => $video->skill->skill_name ?? null,
+                    'level_id' => $levelId,
                 ];
             });
 
@@ -269,7 +299,7 @@ public function index(Request $request)
             return '';
         }
         $cleanText = preg_replace('/<!-- LEVEL:\d+ -->\s*/', '', $text);
-        
+
         // Trim any extra whitespace
         return trim($cleanText);
     }
@@ -282,7 +312,7 @@ public function index(Request $request)
         if (empty($description)) {
             return '';
         }
-        
+
         return preg_replace('/<!-- LEVEL:\d+ -->\s*/', '', $description);
     }
 
@@ -291,7 +321,7 @@ public function index(Request $request)
      */
     private function determineMultipleCorrectAllowed($validated)
     {
-        return $validated['question_type'] === 'multiple_choice' 
+        return $validated['question_type'] === 'multiple_choice'
             && !empty($validated['allow_multiple_correct']);
     }
 
@@ -321,7 +351,7 @@ public function index(Request $request)
     private function ensureSingleCorrectAnswer(array &$answers)
     {
         $firstCorrectFound = false;
-        
+
         foreach ($answers as &$answer) {
             if ($answer['is_correct'] && !$firstCorrectFound) {
                 $firstCorrectFound = true;
@@ -329,7 +359,7 @@ public function index(Request $request)
                 $answer['is_correct'] = false;
             }
         }
-        
+
         // If no correct answer found, set the first answer as correct
         if (!$firstCorrectFound && count($answers) > 0) {
             $answers[0]['is_correct'] = true;

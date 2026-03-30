@@ -114,7 +114,7 @@ Route::middleware(['auth', 'admin'])
             Route::get('export', [AdminUserController::class, 'export'])->name('export');
             Route::post('bulk-delete', [AdminUserController::class, 'bulkDelete'])->name('bulk-delete');
             Route::post('bulk-update-role', [AdminUserController::class, 'bulkUpdateRole'])->name('bulk-update-role');
-            
+
             // Resource routes (these will handle index, create, store, show, edit, update, destroy)
             Route::get('/', [AdminUserController::class, 'index'])->name('index');
             Route::get('/create', [AdminUserController::class, 'create'])->name('create');
@@ -123,7 +123,7 @@ Route::middleware(['auth', 'admin'])
             Route::get('/{user}/edit', [AdminUserController::class, 'edit'])->name('edit');
             Route::put('/{user}', [AdminUserController::class, 'update'])->name('update');
             Route::delete('/{user}', [AdminUserController::class, 'destroy'])->name('destroy');
-            
+
             // Additional user-specific routes (should come after the resource routes)
             Route::get('/{user}/progress', [AdminUserController::class, 'progress'])->name('progress');
             Route::post('/{user}/toggle-role', [AdminUserController::class, 'toggleRole'])->name('toggle-role');
@@ -132,12 +132,14 @@ Route::middleware(['auth', 'admin'])
         // Skills
         Route::resource('skills', AdminSkillController::class);
         Route::post('skills/reorder', [AdminSkillController::class, 'reorder'])->name('skills.reorder');
-        
-        // API routes for AJAX calls
+
         Route::prefix('api')->name('api.')->group(function () {
-            Route::get('/skills/{skill}/levels', [App\Http\Controllers\Admin\QuestionController::class, 'getLevelsBySkill']);
-            Route::get('/videos', [App\Http\Controllers\Admin\QuestionController::class, 'getVideosBySkill']);
-        });
+    Route::get('/levels', [App\Http\Controllers\Admin\QuestionController::class, 'getAllLevels']);
+    Route::get('/skills/{skill}/levels', [App\Http\Controllers\Admin\QuestionController::class, 'getLevelsBySkill']);
+    Route::get('/videos/all', [App\Http\Controllers\Admin\QuestionController::class, 'getAllVideos']);
+    Route::get('/videos', [App\Http\Controllers\Admin\QuestionController::class, 'getVideosBySkill']);
+    Route::get('/video/{videoId}', [App\Http\Controllers\Admin\QuestionController::class, 'getVideoById']);
+});
     });
 
 // ==========================================
