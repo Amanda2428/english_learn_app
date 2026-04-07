@@ -38,6 +38,14 @@ class Skill extends Model
     {
         return $this->hasMany(Question::class, 'skill_id', 'skill_id');
     }
+    
+    /**
+     * Get questions for a specific level
+     */
+    public function questionsForLevel($levelId)
+    {
+        return $this->questions()->where('level_id', $levelId);
+    }
 
     public function videos()
     {

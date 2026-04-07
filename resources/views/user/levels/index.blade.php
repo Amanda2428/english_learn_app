@@ -236,7 +236,7 @@
                     <p class="text-purple-100">Complete all levels to earn the "English Master" badge</p>
                 </div>
             </div>
-            <a href="#" class="px-6 py-3 bg-white text-purple-600 rounded-lg font-semibold hover:bg-purple-50 transition-colors">
+            <a href="{{ route('user.dashboard') }}#leaderboard" class="px-6 py-3 bg-white text-purple-600 rounded-lg font-semibold hover:bg-purple-50 transition-colors">
                 View Leaderboard
                 <i class="fas fa-arrow-right ml-2"></i>
             </a>
@@ -245,6 +245,7 @@
 </div>
 
 @push('styles')
+
 <style>
     @keyframes float {
         0%, 100% { transform: translateY(0px); }

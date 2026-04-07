@@ -16,65 +16,74 @@ class LevelController extends Controller
     /**
      * Display a listing of levels for authenticated users.
      */
-   public function index()
+    public function index()
     {
         $user = Auth::user();
-        
+
         // Get all levels with their skills
-        $levels = Level::with(['skills' => function($query) {
+        $levels = Level::with(['skills' => function ($query) {
             $query->where('status', true);
         }])->withCount('skills')->orderBy('level_order')->get();
-        
+
         // Get user's progress across levels
         $userProgress = UserProgress::where('user_id', $user->id)
             ->get()
-            ->keyBy(function($item) {
+            ->keyBy(function ($item) {
                 return $item->level_id . '-' . $item->skill_id;
             });
-        
+
         // Calculate stats for header
-        $totalSkills = $levels->sum(function($level) {
+        $totalSkills = $levels->sum(function ($level) {
             return $level->skills->count();
         });
-        
+
         $completedLevels = 0;
         $inProgress = 0;
-        
+
         foreach ($levels as $level) {
             $completedSkills = $userProgress
-                ->filter(function($progress) use ($level) {
+                ->filter(function ($progress) use ($level) {
                     return ($progress->level_id ?? null) == $level->level_id && $progress->status === 'completed';
                 })->count();
-            
+
             if ($completedSkills == $level->skills->count() && $level->skills->count() > 0) {
                 $completedLevels++;
             } elseif ($completedSkills > 0) {
                 $inProgress++;
             }
         }
-        
-        $totalLessons = $levels->sum(function($level) {
-            return $level->skills->sum(function($skill) {
+
+        $totalLessons = $levels->sum(function ($level) {
+            return $level->skills->sum(function ($skill) {
                 return $skill->videos()->count();
             });
         });
-        
+
         return view('user.levels.index', compact(
-            'levels', 
-            'userProgress', 
-            'totalLessons', 
-            'completedLevels', 
+            'levels',
+            'userProgress',
+            'totalLessons',
+            'completedLevels',
             'inProgress',
             'totalSkills'
         ));
     }
-    
+
     /**
      * Display the specified level for authenticated users.
      */
-    public function show(Level $level)
+  public function show(Level $level)
     {
         $user = Auth::user();
+        
+        if ($user && $user->level_id != $level->level_id) {
+            User::where('id', $user->id)->update([
+                'level_id' => $level->level_id
+            ]);
+            // Refresh the user object
+            $user = User::find($user->id);
+        }
+    
         
         // Load skills with their related data
         $level->load(['skills' => function($query) {
@@ -105,28 +114,28 @@ class LevelController extends Controller
         
         return view('user.levels.show', compact('level', 'userProgress', 'levelProgress', 'nextLevel', 'prevLevel'));
     }
-    
+
     /**
      * Select/activate a level for the user
      */
-public function select(Request $request, Level $level)
+    public function select(Request $request, Level $level)
     {
         $user = Auth::user();
-        
+
         DB::beginTransaction();
-        
+
         try {
             $updated = User::where('id', $user->id)->update([
                 'level_id' => $level->level_id
             ]);
-            
+
             if (!$updated) {
                 throw new \Exception('Failed to update user level');
             }
-            
+
             // Refresh the user object
             $user = User::find($user->id);
-            
+
             foreach ($level->skills as $skill) {
                 UserProgress::firstOrCreate(
                     [
@@ -149,31 +158,30 @@ public function select(Request $request, Level $level)
                     ]
                 );
             }
-            
+
             DB::commit();
-            
+
             return redirect()->route('user.levels.show', $level)
                 ->with('success', '🎉 You have selected the ' . $level->level_name . ' level. Start learning now!');
-                
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Something went wrong: ' . $e->getMessage());
         }
     }
-    
+
     /**
      * Get next level in sequence
      */
-     public function nextLevel(Level $level)
+    public function nextLevel(Level $level)
     {
         $nextLevel = Level::where('level_order', '>', $level->level_order)
             ->orderBy('level_order')
             ->first();
-            
+
         if ($nextLevel) {
             return redirect()->route('user.levels.show', $nextLevel);
         }
-        
+
         return redirect()->route('user.levels.index')
             ->with('info', 'You have completed all levels! Congratulations! 🎉');
     }

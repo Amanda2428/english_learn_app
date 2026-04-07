@@ -33,5 +33,16 @@ class Level extends Model
             'skill_id'
         );
     }
+    public function questions()
+    {
+        return $this->hasManyThrough(
+            Question::class,
+            Skill::class,
+            'level_id', 
+            'skill_id', 
+            'level_id', 
+            'skill_id'  
+        );
+    }
 
 }

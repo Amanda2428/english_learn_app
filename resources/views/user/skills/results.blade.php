@@ -82,12 +82,12 @@
 
     <!-- Action Buttons -->
     <div class="flex flex-col sm:flex-row gap-4 justify-center">
-        <a href="{{ route('skills.practice', $skill) }}" 
+        <a href="{{ route('user.skills.practice', $skill) }}" 
            class="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg text-center">
             <i class="fas fa-redo-alt mr-2"></i>
             Practice Again
         </a>
-        <a href="{{ route('skills.show', $skill) }}" 
+        <a href="{{ route('user.skills.show', $skill) }}" 
            class="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition-all text-center">
             <i class="fas fa-arrow-left mr-2"></i>
             Back to Skill

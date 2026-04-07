@@ -330,7 +330,7 @@
                 </div>
                 <div class="flex items-center">
                     <div class="w-3 h-3 bg-gray-600 rounded-full mr-2"></div>
-                    <span class="text-sm text-gray-300">Locked</span>
+                    <span class="text-sm text-gray-300">Not Started</span>
                 </div>
             </div>
         </div>
@@ -361,7 +361,7 @@
                         } elseif ($index === 0 || $isPreviousCompleted) {
                             $nodeStatus = 'available';
                         } else {
-                            $nodeStatus = 'locked';
+                            $nodeStatus = 'Not Started';
                         }
                     @endphp
                     <div class="relative flex flex-col items-center">
@@ -382,7 +382,7 @@
                                 <i class="fas fa-lock text-gray-500"></i>
                             @endif
                         </div>
-                        <span class="text-sm font-medium text-center max-w-[100px] {{ $nodeStatus != 'locked' ? 'text-white' : 'text-gray-500' }}">
+                        <span class="text-sm font-medium text-center max-w-[100px] {{ $nodeStatus != 'Not Started' ? 'text-white' : 'text-gray-500' }}">
                             {{ $skill->skill_name }}
                         </span>
                     </div>
