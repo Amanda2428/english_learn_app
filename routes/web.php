@@ -25,6 +25,9 @@ use App\Http\Controllers\User\LevelController as UserLevelController;
 use App\Http\Controllers\User\SkillController as UserSkillController;
 use App\Http\Controllers\User\ProgressController;
 use App\Http\Controllers\User\ChatbotController;
+use App\Http\Controllers\User\ProfileController as UserProfileController;
+use App\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\Auth\NewPasswordController;
 use App\Models\User;
 
 // ==========================================
@@ -45,6 +48,15 @@ Route::get('/', function () {
 // ==========================================
 Route::get('/welcome', [WelcomeController::class, 'index'])->name('welcome');
 Route::get('/help-center', [HelpCenterController::class, 'index'])->name('help.center');
+
+
+Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
+    ->middleware('guest')
+    ->name('password.request');
+
+Route::post('forgot-password', [PasswordResetLinkController::class, 'store'])
+    ->middleware('guest')
+    ->name('password.email');
 
 
 
@@ -81,15 +93,15 @@ Route::middleware(['auth', 'user'])
         Route::get('/skills/{skill}/practice', [UserSkillController::class, 'practice'])->name('skills.practice');
         Route::post('/skills/{skill}/practice/submit', [UserSkillController::class, 'submitPractice'])->name('skills.practice.submit');
 
-Route::get('/skills/{skill}/results', [UserSkillController::class, 'results'])
-    ->name('skills.results');
+        Route::get('/skills/{skill}/results', [UserSkillController::class, 'results'])
+            ->name('skills.results');
 
-    // Progress tracking routes
-       Route::get('/progress', [ProgressController::class, 'index'])->name('progress.index');
+        // Progress tracking routes
+        Route::get('/progress', [ProgressController::class, 'index'])->name('progress.index');
 
-       // Chatbot route
-       Route::post('/chatbot/send', [ChatbotController::class, 'sendMessage'])->name('chatbot.send');
-       Route::get('/chatbot/history', [ChatbotController::class, 'getHistory'])->name('chatbot.history');
+        // Chatbot route
+        Route::post('/chatbot/send', [ChatbotController::class, 'sendMessage'])->name('chatbot.send');
+        Route::get('/chatbot/history', [ChatbotController::class, 'getHistory'])->name('chatbot.history');
 
 
         // AJAX routes
