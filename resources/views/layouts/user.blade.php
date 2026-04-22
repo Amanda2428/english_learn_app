@@ -54,7 +54,7 @@
             color: #2563eb;
             font-weight: 600;
         }
-        
+
         /* Ensure mobile menu is above other content */
         #mobile-menu {
             position: absolute;
@@ -66,7 +66,7 @@
             overflow-y: auto;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
-        
+
         @media (min-width: 768px) {
             #mobile-menu {
                 display: none !important;
@@ -85,7 +85,8 @@
                 <div class="flex items-center space-x-3">
 
                     <!-- Mobile Menu Button -->
-                    <button id="mobile-menu-button" class="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                    <button id="mobile-menu-button"
+                        class="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors">
                         <i id="menu-icon" class="fas fa-bars text-lg text-gray-700"></i>
                     </button>
 
@@ -353,12 +354,14 @@
                     <div id="chat-messages" class="h-80 sm:h-96 overflow-y-auto p-4 bg-gray-50 space-y-4">
                         <div class="flex justify-start">
                             <div class="flex items-start space-x-2 max-w-[85%] sm:max-w-xs">
-                                <div class="w-7 h-7 sm:w-8 sm:h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                <div
+                                    class="w-7 h-7 sm:w-8 sm:h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
                                     <i class="fas fa-robot text-white text-xs sm:text-sm"></i>
                                 </div>
                                 <div class="bg-white rounded-2xl rounded-tl-none p-2 sm:p-3 shadow-sm">
-                                    <p class="text-gray-800 text-xs sm:text-sm">👋 Hello {{ auth()->user()->name }}! I'm your personal English tutor. I can help you find lessons, practice skills, or track your progress. What would you like to learn today?</p>
-                                    <span class="text-xs text-gray-400 mt-1 block">Just now</span>
+                                    <p class="text-gray-800 text-xs sm:text-sm whitespace-pre-line">
+                                        {!! $botIntro ?? '👋 Hello ' . auth()->user()->name . "! I'm your tutor. How can I help?" !!}
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -366,17 +369,37 @@
 
                     <div id="quick-actions" class="px-4 py-2 border-t border-gray-100 bg-white overflow-x-auto">
                         <div class="flex flex-nowrap sm:flex-wrap gap-2">
-                            <button onclick="sendQuickMessage('Show me elementary level')" class="px-3 py-1 bg-green-50 text-green-600 rounded-full text-xs whitespace-nowrap hover:bg-green-100 transition">📚 Elementary</button>
-                            <button onclick="sendQuickMessage('I want to practice speaking')" class="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-xs whitespace-nowrap hover:bg-blue-100 transition">🗣️ Speaking</button>
-                            <button onclick="sendQuickMessage('Show my progress')" class="px-3 py-1 bg-purple-50 text-purple-600 rounded-full text-xs whitespace-nowrap hover:bg-purple-100 transition">📊 My Progress</button>
-                            <button onclick="sendQuickMessage('Recommend videos')" class="px-3 py-1 bg-orange-50 text-orange-600 rounded-full text-xs whitespace-nowrap hover:bg-orange-100 transition">🎥 Recommendations</button>
+                            @php
+                                $quickLevels = \App\Models\Level::take(2)->get();
+                                $quickSkills = \App\Models\Skill::where('status', true)->take(2)->get();
+                            @endphp
+
+                            @foreach ($quickLevels as $l)
+                                <button onclick="sendQuickMessage('{{ $l->level_name }}')"
+                                    class="px-3 py-1 bg-green-50 text-green-600 rounded-full text-xs whitespace-nowrap hover:bg-green-100 transition">
+                                    📚 {{ $l->level_name }}
+                                </button>
+                            @endforeach
+
+                            @foreach ($quickSkills as $s)
+                                <button onclick="sendQuickMessage('{{ $s->skill_name }}')"
+                                    class="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-xs whitespace-nowrap hover:bg-blue-100 transition">
+                                    🗣️ {{ $s->skill_name }}
+                                </button>
+                            @endforeach
+
+                            <button onclick="sendQuickMessage('more')"
+                                class="px-3 py-1 bg-purple-50 text-purple-600 rounded-full text-xs whitespace-nowrap">🔄
+                                More</button>
                         </div>
                     </div>
 
                     <div class="p-3 sm:p-4 border-t border-gray-100 bg-white">
                         <div class="flex items-center space-x-2">
-                            <input type="text" id="chat-input" placeholder="Type your message..." class="flex-1 px-3 sm:px-4 py-1.5 sm:py-2 border border-gray-200 rounded-full focus:outline-none focus:border-blue-500 text-xs sm:text-sm">
-                            <button onclick="sendMessage()" class="w-8 h-8 sm:w-10 sm:h-10 bg-blue-600 rounded-full text-white hover:bg-blue-700 transition flex items-center justify-center flex-shrink-0">
+                            <input type="text" id="chat-input" placeholder="Type your message..."
+                                class="flex-1 px-3 sm:px-4 py-1.5 sm:py-2 border border-gray-200 rounded-full focus:outline-none focus:border-blue-500 text-xs sm:text-sm">
+                            <button onclick="sendMessage()"
+                                class="w-8 h-8 sm:w-10 sm:h-10 bg-blue-600 rounded-full text-white hover:bg-blue-700 transition flex items-center justify-center flex-shrink-0">
                                 <i class="fas fa-paper-plane text-xs sm:text-sm"></i>
                             </button>
                         </div>
@@ -422,31 +445,48 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
                 <div class="text-center sm:text-left">
                     <h3 class="text-lg sm:text-xl font-bold mb-4">FluentEdge</h3>
-                    <p class="text-sm sm:text-base text-gray-400">Master English skills with personalized learning paths and interactive content.</p>
+                    <p class="text-sm sm:text-base text-gray-400">Master English skills with personalized learning
+                        paths and interactive content.</p>
                 </div>
                 <div class="text-center sm:text-left">
                     <h4 class="text-base sm:text-lg font-semibold mb-4">Quick Links</h4>
                     <ul class="space-y-2">
-                        <li><a href="{{ route('welcome') }}" class="text-sm sm:text-base text-gray-400 hover:text-white transition-colors">Home</a></li>
+                        <li><a href="{{ route('welcome') }}"
+                                class="text-sm sm:text-base text-gray-400 hover:text-white transition-colors">Home</a>
+                        </li>
                         @auth
-                        <li><a href="{{ route('user.levels.index') }}" class="text-sm sm:text-base text-gray-400 hover:text-white transition-colors">Learning Levels</a></li>
-                        <li><a href="{{ route('user.skills.index') }}" class="text-sm sm:text-base text-gray-400 hover:text-white transition-colors">Skills</a></li>
+                            <li><a href="{{ route('user.levels.index') }}"
+                                    class="text-sm sm:text-base text-gray-400 hover:text-white transition-colors">Learning
+                                    Levels</a></li>
+                            <li><a href="{{ route('user.skills.index') }}"
+                                    class="text-sm sm:text-base text-gray-400 hover:text-white transition-colors">Skills</a>
+                            </li>
                         @endauth
-                        <li><a href="{{ route('help.center') }}" class="text-sm sm:text-base text-gray-400 hover:text-white transition-colors">Help Center</a></li>
+                        <li><a href="{{ route('help.center') }}"
+                                class="text-sm sm:text-base text-gray-400 hover:text-white transition-colors">Help
+                                Center</a></li>
                     </ul>
                 </div>
                 <div class="text-center sm:text-left">
                     <h4 class="text-base sm:text-lg font-semibold mb-4">Support</h4>
                     <ul class="space-y-2">
-                        <li><a href="{{ route('help.center') }}" class="text-sm sm:text-base text-gray-400 hover:text-white transition-colors">Help Center</a></li>
-                        <li><a href="mailto:support@fluentedgetest.com" class="text-sm sm:text-base text-gray-400 hover:text-white transition-colors">Contact Us</a></li>
+                        <li><a href="{{ route('help.center') }}"
+                                class="text-sm sm:text-base text-gray-400 hover:text-white transition-colors">Help
+                                Center</a></li>
+                        <li><a href="mailto:support@fluentedgetest.com"
+                                class="text-sm sm:text-base text-gray-400 hover:text-white transition-colors">Contact
+                                Us</a></li>
                     </ul>
                 </div>
                 <div class="text-center sm:text-left">
                     <h4 class="text-base sm:text-lg font-semibold mb-4">Legal</h4>
                     <ul class="space-y-2">
-                        <li><a href="#" class="text-sm sm:text-base text-gray-400 hover:text-white transition-colors">Privacy Policy</a></li>
-                        <li><a href="#" class="text-sm sm:text-base text-gray-400 hover:text-white transition-colors">Terms of Service</a></li>
+                        <li><a href="#"
+                                class="text-sm sm:text-base text-gray-400 hover:text-white transition-colors">Privacy
+                                Policy</a></li>
+                        <li><a href="#"
+                                class="text-sm sm:text-base text-gray-400 hover:text-white transition-colors">Terms of
+                                Service</a></li>
                     </ul>
                 </div>
             </div>
@@ -456,217 +496,209 @@
         </div>
     </footer>
 
-    <!-- Combined Scripts -->
     <script>
-        // Mobile Menu Toggle Functionality
-        document.addEventListener('DOMContentLoaded', function() {
-            const mobileMenuButton = document.getElementById('mobile-menu-button');
-            const mobileMenu = document.getElementById('mobile-menu');
-            const menuIcon = document.getElementById('menu-icon');
-            
-            if (mobileMenuButton && mobileMenu) {
-                mobileMenuButton.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    
-                    // Toggle menu visibility
-                    if (mobileMenu.classList.contains('hidden')) {
-                        mobileMenu.classList.remove('hidden');
-                        if (menuIcon) {
-                            menuIcon.classList.remove('fa-bars');
-                            menuIcon.classList.add('fa-times');
-                        }
-                    } else {
-                        mobileMenu.classList.add('hidden');
-                        if (menuIcon) {
-                            menuIcon.classList.remove('fa-times');
-                            menuIcon.classList.add('fa-bars');
-                        }
-                    }
-                });
-                
-                // Close mobile menu when clicking a link
-                const mobileLinks = mobileMenu.querySelectorAll('a, button');
-                mobileLinks.forEach(link => {
-                    link.addEventListener('click', function() {
-                        mobileMenu.classList.add('hidden');
-                        if (menuIcon) {
-                            menuIcon.classList.remove('fa-times');
-                            menuIcon.classList.add('fa-bars');
-                        }
+    // 1. UTILITY FUNCTIONS
+    function escapeHtml(unsafe) {
+        if (!unsafe) return '';
+        return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    function formatTime(timestamp) {
+        if (!timestamp) return 'Just now';
+        return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    // 2. RENDERING FUNCTIONS (UI Only)
+    function renderUserMessage(message, time = null) {
+        const messagesContainer = document.getElementById('chat-messages');
+        if (!messagesContainer) return;
+        
+        const messageHtml = `
+            <div class="flex justify-end mb-3">
+                <div class="bg-blue-600 rounded-2xl rounded-tr-none p-3 shadow-sm max-w-[80%]">
+                    <p class="text-white text-sm">${escapeHtml(message)}</p>
+                    <span class="text-xs text-blue-200 mt-1 block">${formatTime(time)}</span>
+                </div>
+            </div>`;
+        messagesContainer.insertAdjacentHTML('beforeend', messageHtml);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function renderBotMessage(text, linkUrl = null, linkTitle = null, time = null) {
+        const messagesContainer = document.getElementById('chat-messages');
+        if (!messagesContainer) return;
+
+        let messageHtml = `
+            <div class="flex justify-start mb-3">
+                <div class="bg-white rounded-2xl rounded-tl-none p-3 shadow-sm max-w-[80%] border border-gray-100">
+                    <div class="text-gray-800 text-sm whitespace-pre-line">${text}</div>`;
+
+        if (linkUrl) {
+            messageHtml += `
+                <a href="${linkUrl}" class="mt-2 inline-block bg-blue-600 text-white text-xs px-3 py-1 rounded-lg hover:bg-blue-700 transition">
+                    ${linkTitle ? linkTitle : 'Learn More'}
+                </a>`;
+        }
+
+        messageHtml += `
+                    <span class="text-xs text-gray-400 mt-1 block">${formatTime(time)}</span>
+                </div>
+            </div>`;
+
+        messagesContainer.insertAdjacentHTML('beforeend', messageHtml);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    // 3. DATABASE INTERACTIONS
+    window.loadChatHistory = function() {
+        fetch("{{ route('user.chatbot.history') }}")
+            .then(res => res.json())
+            .then(data => {
+                if (data.messages && data.messages.length > 0) {
+                    data.messages.forEach(msg => {
+                        renderUserMessage(msg.user_message, msg.created_at);
+                        renderBotMessage(msg.bot_response, msg.link_url, msg.link_title, msg.created_at);
                     });
-                });
+                }
+            })
+            .catch(err => console.error("Error loading history:", err));
+    };
+
+    window.sendMessage = function() {
+        const input = document.getElementById('chat-input');
+        if (!input) return;
+        const message = input.value.trim();
+        if (message) {
+            renderUserMessage(message); // Show in UI immediately
+            input.value = '';
+
+            fetch("{{ route('user.chatbot.send') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({ message: message })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Response from Controller (which already saved it to DB)
+                renderBotMessage(data.bot_response, data.link_url, data.link_title);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                renderBotMessage("I'm sorry, I'm having trouble connecting to my brain right now.");
+            });
+        }
+    };
+
+    window.sendQuickMessage = function(message) {
+        if (!message) return;
+        renderUserMessage(message);
+
+        fetch("{{ route('user.chatbot.send') }}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({ message: message })
+        })
+        .then(response => response.json())
+        .then(data => {
+            renderBotMessage(data.bot_response, data.link_url, data.link_title);
+        });
+    };
+
+    window.sendQuickMessageFromPreview = function(message) {
+        const chatbotToggle = document.getElementById('chatbot-toggle');
+        const widget = document.getElementById('chatbot-widget');
+        
+        if (chatbotToggle) {
+            if (widget && widget.classList.contains('hidden')) {
+                widget.classList.remove('hidden');
             }
             
-            // Close mobile menu when clicking outside on desktop
-            document.addEventListener('click', function(event) {
-                if (window.innerWidth >= 768) return;
-                
-                const isClickInsideMenu = mobileMenu && mobileMenu.contains(event.target);
-                const isClickOnButton = mobileMenuButton && mobileMenuButton.contains(event.target);
-                
-                if (!isClickInsideMenu && !isClickOnButton && mobileMenu && !mobileMenu.classList.contains('hidden')) {
-                    mobileMenu.classList.add('hidden');
-                    if (menuIcon) {
-                        menuIcon.classList.remove('fa-times');
-                        menuIcon.classList.add('fa-bars');
-                    }
+            setTimeout(() => {
+                const input = document.getElementById('chat-input');
+                if (input) {
+                    input.value = message;
+                    window.sendMessage();
+                }
+            }, 500);
+        } else {
+            window.location.href = '{{ route("login") }}';
+        }
+    };
+
+    // 4. INITIALIZATION & EVENT LISTENERS
+    document.addEventListener('DOMContentLoaded', function() {
+        // Load History on startup
+        window.loadChatHistory();
+
+        // Mobile Menu
+        const mobileBtn = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const menuIcon = document.getElementById('menu-icon');
+
+        if (mobileBtn && mobileMenu) {
+            mobileBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                mobileMenu.classList.toggle('hidden');
+                if (menuIcon) {
+                    menuIcon.classList.toggle('fa-bars');
+                    menuIcon.classList.toggle('fa-times');
                 }
             });
-        });
-        
-        // Chatbot functions
-        function sendMessage() {
-            try {
-                const input = document.getElementById('chat-input');
-                if (!input) return;
-                const message = input.value.trim();
-                if (message) {
-                    addUserMessage(message);
-                    setTimeout(() => processBotResponse(message), 1000);
-                    input.value = '';
-                }
-            } catch (error) {
-                console.log('Error sending message:', error);
-            }
         }
-        
-        function sendQuickMessage(message) {
-            try {
-                if (!message) return;
-                addUserMessage(message);
-                setTimeout(() => processBotResponse(message), 1000);
-            } catch (error) {
-                console.log('Error sending quick message:', error);
-            }
-        }
-        
-        function processBotResponse(message) {
-            try {
-                const lowerMessage = message.toLowerCase();
-                let response = '';
-                let links = [];
-                
-                if (lowerMessage.includes('elementary') || lowerMessage.includes('beginner')) {
-                    response = '📚 **Elementary Level (A1-A2)**\n\nAt this level, you will learn:\n• Basic greetings and introductions\n• Simple present tense\n• Everyday vocabulary\n• Basic conversation skills';
-                } else if (lowerMessage.includes('intermediate')) {
-                    response = '📗 **Intermediate Level (B1-B2)**\n\nAt this level, you will master:\n• Past tenses and narratives\n• Future plans and predictions\n• Business English basics';
-                } else if (lowerMessage.includes('advanced')) {
-                    response = '📘 **Advanced Level (C1-C2)**\n\nAt this level, you will perfect:\n• Advanced grammar\n• Academic writing\n• Professional presentations';
-                } else if (lowerMessage.includes('speaking')) {
-                    response = '🗣️ **Speaking Practice**\n\nImprove your speaking skills with:\n• Pronunciation exercises\n• Conversation practice\n• Public speaking tips';
-                } else if (lowerMessage.includes('listening')) {
-                    response = '👂 **Listening Comprehension**\n\nEnhance your listening with:\n• Podcast episodes\n• News articles\n• Movie dialogues';
-                } else if (lowerMessage.includes('progress')) {
-                    response = '📊 **Your Progress**\n\nYou can view your detailed progress in the My Progress section! Click on "My Progress" in the navigation menu to see your stats.';
-                } else {
-                    response = '👋 I can help you with English learning! Try asking about:\n\n📚 **Levels:** elementary, intermediate, advanced\n🗣️ **Skills:** speaking, listening, writing, reading\n\nWhat would you like to practice?';
-                }
-                
-                addBotMessage(response, links);
-            } catch (error) {
-                console.log('Error processing response:', error);
-            }
-        }
-        
-        function addUserMessage(message) {
-            try {
-                const messagesContainer = document.getElementById('chat-messages');
-                if (!messagesContainer) return;
-                const messageHtml = `<div class="flex justify-end mb-3"><div class="bg-blue-600 rounded-2xl rounded-tr-none p-3 shadow-sm max-w-[80%]"><p class="text-white text-sm">${escapeHtml(message)}</p><span class="text-xs text-blue-200 mt-1 block">Just now</span></div></div>`;
-                messagesContainer.insertAdjacentHTML('beforeend', messageHtml);
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            } catch (error) {
-                console.log('Error adding user message:', error);
-            }
-        }
-        
-        function addBotMessage(text, links = []) {
-            try {
-                const messagesContainer = document.getElementById('chat-messages');
-                if (!messagesContainer) return;
-                const messageHtml = `<div class="flex justify-start mb-3"><div class="bg-white rounded-2xl rounded-tl-none p-3 shadow-sm max-w-[80%]"><div class="text-gray-800 text-sm whitespace-pre-line">${escapeHtml(text)}</div><span class="text-xs text-gray-400 mt-1 block">Just now</span></div></div>`;
-                messagesContainer.insertAdjacentHTML('beforeend', messageHtml);
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            } catch (error) {
-                console.log('Error adding bot message:', error);
-            }
-        }
-        
-        function escapeHtml(unsafe) {
-            if (!unsafe) return '';
-            return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;").replace(/\n/g, '<br>');
-        }
-        
-        function sendQuickMessageFromPreview(message) {
-            try {
-                const chatbotToggle = document.getElementById('chatbot-toggle');
-                if (chatbotToggle) {
-                    chatbotToggle.click();
-                    setTimeout(() => {
-                        const input = document.getElementById('chat-input');
-                        if (input) {
-                            input.value = message;
-                            sendMessage();
-                        }
-                    }, 500);
-                } else {
-                    window.location.href = '{{ route('login') }}';
-                }
-            } catch (error) {
-                console.log('Error:', error);
-                window.location.href = '{{ route('login') }}';
-            }
-        }
-        
-        // Make functions global
-        window.sendMessage = sendMessage;
-        window.sendQuickMessage = sendQuickMessage;
-        window.sendQuickMessageFromPreview = sendQuickMessageFromPreview;
-    </script>
 
-    @auth
-        @if (auth()->user()->isUser())
-            <script>
-                // Chatbot toggle functionality
-                document.addEventListener('DOMContentLoaded', function() {
-                    const chatbotToggle = document.getElementById('chatbot-toggle');
-                    const chatbotWidget = document.getElementById('chatbot-widget');
-                    const chatbotClose = document.getElementById('chatbot-close');
-                    const chatInput = document.getElementById('chat-input');
-                    
-                    if (chatbotToggle && chatbotWidget) {
-                        chatbotToggle.addEventListener('click', function(e) {
-                            e.preventDefault();
-                            chatbotWidget.classList.toggle('hidden');
-                        });
-                    }
-                    
-                    if (chatbotClose && chatbotWidget) {
-                        chatbotClose.addEventListener('click', function(e) {
-                            e.preventDefault();
-                            chatbotWidget.classList.add('hidden');
-                        });
-                    }
-                    
-                    if (chatInput) {
-                        chatInput.addEventListener('keypress', function(e) {
-                            if (e.key === 'Enter') {
-                                e.preventDefault();
-                                sendMessage();
-                            }
-                        });
-                    }
-                });
-            </script>
-        @endif
-    @endauth
+        // Chatbot UI Toggle
+        const chatBtn = document.getElementById('chatbot-toggle');
+        const chatWidget = document.getElementById('chatbot-widget');
+        const chatClose = document.getElementById('chatbot-close');
+        const chatInput = document.getElementById('chat-input');
+
+        if (chatBtn && chatWidget) {
+            chatBtn.addEventListener('click', () => chatWidget.classList.toggle('hidden'));
+        }
+
+        if (chatClose && chatWidget) {
+            chatClose.addEventListener('click', () => chatWidget.classList.add('hidden'));
+        }
+
+        if (chatInput) {
+            chatInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    window.sendMessage();
+                }
+            });
+        }
+    });
+</script>
 
     @push('styles')
         <style>
-            [x-cloak] { display: none !important; }
-            #chatbot-widget { z-index: 9999; }
-            #mobile-menu { z-index: 999; }
+            [x-cloak] {
+                display: none !important;
+            }
+
+            #chatbot-widget {
+                z-index: 9999 !important;
+            }
+
+            #mobile-menu {
+                z-index: 999;
+            }
+
+            .hidden {
+                display: none !important;
+            }
         </style>
     @endpush
 

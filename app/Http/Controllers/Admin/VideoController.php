@@ -8,6 +8,7 @@ use App\Models\Skill;
 use App\Models\Level;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class VideoController extends Controller
 {
@@ -37,34 +38,45 @@ class VideoController extends Controller
         return view('admin.videos.form', compact('skills', 'levels'));
     }
 
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'skill_id' => 'nullable|exists:skills,skill_id',
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'video_file' => 'required|file|mimes:mp4,mov,avi,wmv,flv,mkv|max:102400', // 100MB max
-            'duration' => 'required|date_format:H:i:s',
-            'level_id' => 'nullable|exists:levels,level_id',
-        ]);
+  public function store(Request $request)
+{
+    $validated = $request->validate([
+        'skill_id' => 'required|exists:skills,skill_id', 
+        'title' => 'required|string|max:255',
+        'description' => 'nullable|string',
+        'video_file' => 'required|file|mimes:mp4,mov,avi,wmv,flv,mkv|max:102400',
+        'duration' => 'required|date_format:H:i:s',
+        'level_id' => 'nullable|exists:levels,level_id',
+    ]);
 
-        if ($request->hasFile('video_file')) {
-            $path = $request->file('video_file')->store('videos', 'public');
-            $validated['video_file'] = $path;
-        }
-
-        if (!empty($validated['level_id'])) {
-            $levelMarker = "<!-- LEVEL:{$validated['level_id']} -->";
-            $validated['description'] = $levelMarker . ($validated['description'] ?? '');
-        }
-
-        unset($validated['level_id']);
-
-        Video::create($validated);
-
-        return redirect()->route('admin.videos.index')
-            ->with('success', 'Video uploaded successfully.');
+    // Store the video file
+    if ($request->hasFile('video_file')) {
+        $path = $request->file('video_file')->store('videos', 'public');
+        $validated['video_file'] = $path;
     }
+
+    // Store level_id separately before unsetting
+    $levelId = $validated['level_id'] ?? null;
+    
+    // Add level marker to description
+    if ($levelId) {
+        $levelMarker = "<!-- LEVEL:{$levelId} -->";
+        $validated['description'] = $levelMarker . ($validated['description'] ?? '');
+    }
+    
+    unset($validated['level_id']);
+    
+    // Debug: Log what we're creating
+    Log::info('Creating video with data:', $validated);
+    
+    $video = Video::create($validated);
+    
+    // Debug: Confirm creation
+    Log::info('Video created:', ['id' => $video->video_id, 'skill_id' => $video->skill_id]);
+    
+    return redirect()->route('admin.videos.index')
+        ->with('success', 'Video uploaded successfully.');
+}
 
     public function edit(Video $video)
     {

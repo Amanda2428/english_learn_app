@@ -24,6 +24,7 @@ use App\Http\Controllers\User\DashboardController as UserDashboardController;
 use App\Http\Controllers\User\LevelController as UserLevelController;
 use App\Http\Controllers\User\SkillController as UserSkillController;
 use App\Http\Controllers\User\ProgressController;
+use App\Http\Controllers\User\ChatbotController;
 use App\Models\User;
 
 // ==========================================
@@ -45,8 +46,10 @@ Route::get('/', function () {
 Route::get('/welcome', [WelcomeController::class, 'index'])->name('welcome');
 Route::get('/help-center', [HelpCenterController::class, 'index'])->name('help.center');
 
+
+
 // ==========================================
-// USER ROUTES (ROLE = 0) -
+// USER ROUTES (ROLE = 0) 
 // ==========================================
 Route::middleware(['auth', 'user'])
     ->prefix('user')
@@ -83,6 +86,11 @@ Route::get('/skills/{skill}/results', [UserSkillController::class, 'results'])
 
     // Progress tracking routes
        Route::get('/progress', [ProgressController::class, 'index'])->name('progress.index');
+
+       // Chatbot route
+       Route::post('/chatbot/send', [ChatbotController::class, 'sendMessage'])->name('chatbot.send');
+       Route::get('/chatbot/history', [ChatbotController::class, 'getHistory'])->name('chatbot.history');
+
 
         // AJAX routes
         Route::get('/skills/{skill}/levels', [UserSkillController::class, 'getLevelsForSkill'])->name('skills.levels');

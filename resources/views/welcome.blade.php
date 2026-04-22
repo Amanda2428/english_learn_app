@@ -370,79 +370,37 @@
                     </div>
                 </div>
 
-                <div class="p-4 sm:p-6 bg-gray-50">
-                    <div class="space-y-3 sm:space-y-4 max-w-3xl mx-auto">
-                        <!-- Bot Message -->
-                        <div class="flex justify-start">
-                            <div class="flex items-start space-x-2 max-w-[85%] sm:max-w-md">
-                                <div
-                                    class="w-6 h-6 sm:w-8 sm:h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                                    <i class="fas fa-robot text-white text-xs sm:text-sm"></i>
-                                </div>
-                                <div class="bg-white rounded-xl sm:rounded-2xl rounded-tl-none p-3 sm:p-4 shadow-sm">
-                                    <p class="text-xs sm:text-sm text-gray-800">👋 Hi there! I'm your English learning
-                                        assistant. I can help you find the perfect learning path based on your level and
-                                        goals.</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Example Responses Grid -->
-                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 mt-3 sm:mt-4">
-                            @foreach ($sampleRules as $key => $rule)
-                                <div class="bg-{{ $rule['color'] }}-50 p-2 sm:p-3 rounded-lg">
-                                    <p class="text-{{ $rule['color'] }}-700 font-medium text-xs sm:text-sm">
-                                        {{ $rule['name'] }}</p>
-                                    <p class="text-gray-600 text-xs mt-1 hidden sm:block">{{ $rule['response'] }}</p>
-                                </div>
-                            @endforeach
-                        </div>
-
-                        <!-- Message Input Preview -->
-                        <div
-                            class="mt-4 sm:mt-6 bg-white rounded-full p-1.5 sm:p-2 border border-gray-200 flex items-center">
-                            <input type="text" placeholder="Ask me about levels, skills, or get recommendations..."
-                                class="flex-1 px-3 sm:px-4 py-1.5 sm:py-2 focus:outline-none text-xs sm:text-sm" disabled>
-                            <button
-                                class="w-8 h-8 sm:w-10 sm:h-10 bg-blue-600 rounded-full text-white hover:bg-blue-700 transition flex items-center justify-center"
-                                disabled>
-                                <i class="fas fa-paper-plane text-xs sm:text-sm"></i>
-                            </button>
-                        </div>
-
-                        <!-- Sign Up CTA for Guests -->
-                        @guest
-                            <div class="text-center mt-4 sm:mt-6">
-                                <a href="{{ route('register') }}"
-                                    class="inline-flex items-center text-blue-600 hover:text-blue-700 font-medium group text-sm sm:text-base">
-                                    <i class="fas fa-user-plus mr-2"></i>
-                                    Sign up to chat with our AI Tutor and get personalized recommendations
-                                    <i class="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition"></i>
-                                </a>
-                            </div>
-                        @endguest
-
-                        <!-- Quick Action Buttons for Logged-in Users -->
-                        @auth
-                            @if (auth()->user()->isUser())
-                                <div class="flex flex-wrap gap-2 justify-center mt-4">
-                                    <button onclick="document.getElementById('chatbot-toggle')?.click()"
-                                        class="px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-600 text-white rounded-full text-xs sm:text-sm hover:bg-blue-700 transition">
-                                        <i class="fas fa-comment mr-1"></i> Open Chatbot
-                                    </button>
-                                    <button onclick="sendQuickMessageFromPreview('Show me elementary level')"
-                                        class="px-3 sm:px-4 py-1.5 sm:py-2 bg-green-100 text-green-700 rounded-full text-xs sm:text-sm hover:bg-green-200 transition">
-                                        📚 Elementary
-                                    </button>
-                                    <button onclick="sendQuickMessageFromPreview('I want to practice speaking')"
-                                        class="px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-100 text-blue-700 rounded-full text-xs sm:text-sm hover:bg-blue-200 transition">
-                                        🗣️ Speaking
-                                    </button>
-                                </div>
-                            @endif
-                        @endauth
-                    </div>
+               <div class="p-4 sm:p-6 bg-gray-50">
+    <div class="space-y-4 max-w-3xl mx-auto">
+        <div class="flex justify-start">
+            <div class="flex items-start space-x-2 max-w-[85%] sm:max-w-md">
+                <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-robot text-white text-sm"></i>
                 </div>
+                <div class="bg-white rounded-2xl rounded-tl-none p-4 shadow-sm border border-gray-100">
+                    <p class="text-sm text-gray-800 whitespace-pre-line">{!! $botIntro !!}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-xs text-gray-500 mt-4 mb-2">Available in our database:</div>
+        <div class="flex flex-wrap gap-2 justify-center">
+            @php
+                $btnLevels = \App\Models\Level::take(3)->get();
+                $btnSkills = \App\Models\Skill::where('status', true)->take(3)->get();
+            @endphp
+
+            @foreach($btnLevels as $l)
+                @foreach($btnSkills as $s)
+                    <button onclick="sendQuickMessageFromPreview('I want to study {{ $l->level_name }} {{ $s->skill_name }}')"
+                        class="px-3 py-1 bg-white text-blue-600 border border-blue-200 rounded-full text-xs hover:bg-blue-50 transition shadow-sm">
+                        {{ $l->level_name }} {{ $s->skill_name }}
+                    </button>
+                @endforeach
+            @endforeach
+        </div>
+    </div>
+</div>
             </div>
         </div>
     </section>
@@ -747,37 +705,36 @@
 @endpush
 
 @push('scripts')
-<script>
-    function sendQuickMessageFromPreview(message) {
-        const chatbotToggle = document.getElementById('chatbot-toggle');
-        if (chatbotToggle) {
-            chatbotToggle.click();
-            setTimeout(() => {
-                const input = document.getElementById('chat-input');
-                if (input) {
-                    input.value = message;
-                    if (typeof sendMessage === 'function') {
-                        setTimeout(() => sendMessage(), 500);
+    <script>
+        function sendQuickMessageFromPreview(message) {
+            const chatbotToggle = document.getElementById('chatbot-toggle');
+            if (chatbotToggle) {
+                chatbotToggle.click();
+                setTimeout(() => {
+                    const input = document.getElementById('chat-input');
+                    if (input) {
+                        input.value = message;
+                        if (typeof sendMessage === 'function') {
+                            setTimeout(() => sendMessage(), 500);
+                        }
                     }
-                }
-            }, 500);
+                }, 500);
+            }
         }
-    }
-    if (window.location.hash) {
-        const element = document.querySelector(window.location.hash);
-        if (element) {
-            setTimeout(() => {
-                const offset = 80;
-                const elementPosition = element.getBoundingClientRect().top;
-                const offsetPosition = elementPosition + window.pageYOffset - offset;
-                
-                window.scrollTo({
-                    top: offsetPosition,
-                    behavior: 'smooth'
-                });
-            }, 100);
+        if (window.location.hash) {
+            const element = document.querySelector(window.location.hash);
+            if (element) {
+                setTimeout(() => {
+                    const offset = 80;
+                    const elementPosition = element.getBoundingClientRect().top;
+                    const offsetPosition = elementPosition + window.pageYOffset - offset;
+
+                    window.scrollTo({
+                        top: offsetPosition,
+                        behavior: 'smooth'
+                    });
+                }, 100);
+            }
         }
-    }
-</script>
-    
+    </script>
 @endpush
