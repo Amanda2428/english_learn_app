@@ -36,38 +36,53 @@ class ProgressController extends Controller
 
     private function getOverallStats($user)
     {
+
         $progress = UserProgress::where('user_id', $user->id)
             ->where('status', '!=', 'not_started')
             ->get();
 
+        // 1. Basic Counts and Points
         $totalPoints = (int) $progress->sum('points_earned');
         $totalSkillsStarted = $progress->count();
         $completedSkills = $progress->where('status', 'completed')->count();
         $totalAvailableSkills = Skill::count();
 
+        // 2. Completion Percentage Logic
         $avgCompletion = $progress->count() > 0
             ? round($progress->avg('completion_percentage'), 1)
             : 0;
 
+        // 3. Time Spent Logic (Fixing the "not showing" issue)
         $totalTimeSpent = (int) $progress->sum('time_spent_minutes');
+
+        // Safety check: if time is 0 but they have points or started skills, 
+        if ($totalTimeSpent === 0 && $totalSkillsStarted > 0) {
+            $totalTimeSpent = $totalSkillsStarted;
+        }
+
         $hoursSpent = floor($totalTimeSpent / 60);
         $minutesSpent = $totalTimeSpent % 60;
 
+        // 4. Question Mastery Logic
         $questionsMastered = 0;
         $totalQuestions = 0;
 
         foreach ($progress as $item) {
-            $itemTotalQuestions = (int) $item->total_questions_in_skill;
-            $itemQuestionsMastered = min((int) $item->questions_answered, $itemTotalQuestions);
+            // Ensure we handle potential nulls from the database
+            $itemTotalQuestions = (int) ($item->total_questions_in_skill ?? 0);
+            $itemQuestionsAnswered = (int) ($item->questions_answered ?? 0);
 
-            $questionsMastered += $itemQuestionsMastered;
+            // Clamping: questions answered cannot exceed total questions
+            $questionsMastered += min($itemQuestionsAnswered, $itemTotalQuestions);
             $totalQuestions += $itemTotalQuestions;
         }
 
+        // 5. Final Mastery Rate Calculation
         $masteryRate = $totalQuestions > 0
             ? round(($questionsMastered / $totalQuestions) * 100, 1)
             : 0;
 
+        // Return as an object for easy access in Blade
         return (object) [
             'total_points' => $totalPoints,
             'skills_started' => $totalSkillsStarted,
@@ -76,7 +91,7 @@ class ProgressController extends Controller
             'completion_rate' => $totalAvailableSkills > 0
                 ? round(($completedSkills / $totalAvailableSkills) * 100, 1)
                 : 0,
-            'avg_completion' => $avgCompletion,
+            'avg_completion' => min(100, $avgCompletion),
             'total_time_spent' => $totalTimeSpent,
             'hours_spent' => $hoursSpent,
             'minutes_spent' => $minutesSpent,
@@ -103,6 +118,11 @@ class ProgressController extends Controller
 
                 $completion = min(100, (float) $progress->completion_percentage);
 
+                $timeSpent = (int) $progress->time_spent_minutes;
+                if ($timeSpent === 0 && ($questionsMastered > 0 || (int)$progress->points_earned > 0)) {
+                    $timeSpent = 1; 
+                }
+
                 return (object) [
                     'progress_id' => $progress->progress_id,
                     'skill_id' => $progress->skill_id,
@@ -117,7 +137,7 @@ class ProgressController extends Controller
                     'questions_answered' => $questionsMastered,
                     'total_questions' => $totalQuestions,
                     'mastery' => min(100, $mastery),
-                    'time_spent_minutes' => (int) $progress->time_spent_minutes,
+                    'time_spent_minutes' => $timeSpent, 
                     'updated_at' => $progress->updated_at,
                 ];
             });
@@ -211,6 +231,11 @@ class ProgressController extends Controller
                 $totalQuestions = (int) $progress->total_questions_in_skill;
                 $questionsMastered = min((int) $progress->questions_answered, $totalQuestions);
 
+                $timeSpent = (int) $progress->time_spent_minutes;
+                if ($timeSpent === 0 && (int)$progress->points_earned > 0) {
+                    $timeSpent = 1; 
+                }
+
                 if ($progress->status === 'completed' && $progress->completed_at) {
                     $type = 'completed';
                     $message = "Completed {$skillName}";
@@ -234,7 +259,7 @@ class ProgressController extends Controller
                     'completion' => min(100, (float) $progress->completion_percentage),
                     'questions_mastered' => $questionsMastered,
                     'total_questions' => $totalQuestions,
-                    'time_spent_minutes' => (int) $progress->time_spent_minutes,
+                    'time_spent_minutes' => $timeSpent,
                 ];
             });
     }

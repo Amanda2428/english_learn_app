@@ -17,7 +17,7 @@ class ChatbotController extends Controller
     public function getHistory()
     {
         $session = ChatbotSession::where('user_id', Auth::id())->latest()->first();
-        
+
         return response()->json([
             'messages' => $session ? $session->messages()->orderBy('created_at', 'asc')->get() : []
         ]);
@@ -26,18 +26,18 @@ class ChatbotController extends Controller
     /**
      * Handle incoming chatbot messages
      */
-    public function sendMessage(Request $request) 
+    public function sendMessage(Request $request)
     {
         $userInput = strtolower(trim($request->message));
         $userId = Auth::id();
 
         $chatSession = ChatbotSession::firstOrCreate(
             ['user_id' => $userId],
-    [
-        'started_at' => now(), 
-        'last_msg_at' => now()
-    ]
-);
+            [
+                'started_at' => now(),
+                'last_msg_at' => now()
+            ]
+        );
         $chatSession->update(['last_msg_at' => now()]);
 
         $matchedRule = null;
@@ -50,7 +50,7 @@ class ChatbotController extends Controller
 
             if ($lastMessage) {
                 $prevRule = ChatbotRule::find($lastMessage->rule_id);
-                $prevKeyword = $prevRule->keyword; 
+                $prevKeyword = $prevRule->keyword;
 
                 if (preg_match('/(\d+)$/', $prevKeyword, $matches)) {
                     $number = (int)$matches[1];
@@ -62,7 +62,7 @@ class ChatbotController extends Controller
                 }
 
                 $matchedRule = ChatbotRule::where('keyword', $nextKeyword)->first();
-                
+
                 if (!$matchedRule) {
                     $matchedRule = ChatbotRule::where('keyword', $baseKeyword)->first();
                 }
@@ -70,23 +70,34 @@ class ChatbotController extends Controller
         }
 
         if (!$matchedRule) {
+            // Sort rules by keyword length (Longest Match First) 
             $rules = ChatbotRule::orderByRaw('LENGTH(keyword) DESC')->get();
-            
+
             foreach ($rules as $rule) {
                 $keyword = strtolower($rule->keyword);
-                $words = explode(' ', $keyword);
-                $allWordsPresent = true;
+                $wordsInRule = explode(' ', $keyword);
+                $wordsInInput = explode(' ', $userInput);
+                $allWordsMatched = true;
 
-                foreach ($words as $word) {
-                    if (is_numeric($word)) continue;
-                    
-                    if (!str_contains($userInput, $word)) {
-                        $allWordsPresent = false;
+                foreach ($wordsInRule as $ruleWord) {
+                    if (is_numeric($ruleWord)) continue;
+
+                    $foundMatch = false;
+                    foreach ($wordsInInput as $inputWord) {
+                        // Check for exact match OR a close typo (Levenshtein distance <= 2)
+                        if (str_contains($inputWord, $ruleWord) || levenshtein($ruleWord, $inputWord) <= 2) {
+                            $foundMatch = true;
+                            break;
+                        }
+                    }
+
+                    if (!$foundMatch) {
+                        $allWordsMatched = false;
                         break;
                     }
                 }
 
-                if ($allWordsPresent) {
+                if ($allWordsMatched) {
                     $matchedRule = $rule;
                     break;
                 }

@@ -93,6 +93,7 @@ class SkillController extends Controller
             }
         }
 
+        // 1. Get current level questions
         $questions = $skill->questions()
             ->with(['answers', 'video', 'level'])
             ->when($levelId, function ($query) use ($levelId) {
@@ -104,8 +105,8 @@ class SkillController extends Controller
         $progress = null;
 
         if ($levelId) {
-            $questionCount = $questions->count();
-            $videoCount = $skill->videos->count();
+            $realQuestionCount = $questions->count();
+            $realVideoCount = $questions->whereNotNull('video_id')->pluck('video_id')->unique()->count();
 
             $progress = UserProgress::firstOrCreate(
                 [
@@ -115,8 +116,8 @@ class SkillController extends Controller
                 ],
                 [
                     'status' => 'in_progress',
-                    'total_videos_in_skill' => $videoCount,
-                    'total_questions_in_skill' => $questionCount,
+                    'total_videos_in_skill' => $realVideoCount,
+                    'total_questions_in_skill' => $realQuestionCount,
                     'completed_questions' => [],
                     'points_earned' => 0,
                     'questions_answered' => 0,
@@ -126,31 +127,26 @@ class SkillController extends Controller
                 ]
             );
 
-            // Always sync totals with real counts
-            $progress->total_videos_in_skill = $videoCount;
-            $progress->total_questions_in_skill = $questionCount;
+            // 2. SELF-HEALING BLOCK: Fix the 50% calculation if it exists in DB
+            $progress->total_videos_in_skill = $realVideoCount;
+            $progress->total_questions_in_skill = $realQuestionCount;
 
-            // Clamp stored values
-            $progress->videos_watched = min(
-                max(0, (int) $progress->videos_watched),
-                $videoCount
-            );
+            $qPerc = ($realQuestionCount > 0) ? ($progress->questions_answered / $realQuestionCount) * 100 : 100;
+            $vPerc = ($realVideoCount > 0) ? ($progress->videos_watched / $realVideoCount) * 100 : 100;
 
-            $progress->questions_answered = min(
-                max(0, (int) $progress->questions_answered),
-                $questionCount
-            );
+            if ($realVideoCount > 0 && $realQuestionCount > 0) {
+                $progress->completion_percentage = ($qPerc + $vPerc) / 2;
+            } else {
+                // If 0 videos, it will now correctly result in 100% instead of 50%
+                $progress->completion_percentage = ($realVideoCount == 0) ? $qPerc : $vPerc;
+            }
 
-            $progress->completion_percentage = min(
-                100,
-                max(0, (float) $progress->completion_percentage)
-            );
-
+            $progress->completion_percentage = round(min(100, $progress->completion_percentage), 1);
+            $progress->status = ($progress->completion_percentage >= 100) ? 'completed' : 'in_progress';
             $progress->save();
 
-            // Add computed safe mastery for blade
-            $progress->mastery_rate = $questionCount > 0
-                ? round(($progress->questions_answered / $questionCount) * 100, 1)
+            $progress->mastery_rate = $realQuestionCount > 0
+                ? round(($progress->questions_answered / $realQuestionCount) * 100, 1)
                 : 0;
         }
 
@@ -158,21 +154,11 @@ class SkillController extends Controller
             ->orderBy('level_order')
             ->get()
             ->map(function ($level) use ($skill) {
-                $level->question_count = $skill->questions()
-                    ->where('level_id', $level->level_id)
-                    ->count();
-
+                $level->question_count = $skill->questions()->where('level_id', $level->level_id)->count();
                 return $level;
             });
 
-        return view('user.skills.show', compact(
-            'skill',
-            'questions',
-            'progress',
-            'selectedLevel',
-            'availableLevels',
-            'levelId'
-        ));
+        return view('user.skills.show', compact('skill', 'questions', 'progress', 'selectedLevel', 'availableLevels', 'levelId'));
     }
 
     public function selectLevel(Skill $skill)
@@ -369,165 +355,77 @@ class SkillController extends Controller
         $submittedAnswers = $request->input('answers', []);
         $incorrectQuestionIds = [];
         $totalNewPoints = 0;
-        $newlyWatchedVideos = [];
 
-        $skill->load(['levels', 'videos']);
-
-        $levelExists = $skill->levels->contains('level_id', $levelId);
-
-        if (!$levelExists) {
-            return redirect()->route('user.skills.select-level', $skill)
-                ->with('error', 'Invalid level selected.');
-        }
-
-        $realQuestionCount = $skill->questions()->where('level_id', $levelId)->count();
-        $realVideoCount = $skill->videos->count();
+        // 1. Get real counts for this specific level
+        $questionsForLevel = $skill->questions()->where('level_id', $levelId)->get();
+        $realQuestionCount = $questionsForLevel->count();
+        $realVideoCount = $questionsForLevel->whereNotNull('video_id')->pluck('video_id')->unique()->count();
 
         $progress = UserProgress::firstOrCreate(
-            [
-                'user_id' => $user->id,
-                'skill_id' => $skill->skill_id,
-                'level_id' => $levelId,
-            ],
-            [
-                'status' => 'in_progress',
-                'total_videos_in_skill' => $realVideoCount,
-                'total_questions_in_skill' => $realQuestionCount,
-                'completed_questions' => [],
-                'points_earned' => 0,
-                'questions_answered' => 0,
-                'videos_watched' => 0,
-                'completion_percentage' => 0,
-                'started_at' => now(),
-            ]
+            ['user_id' => $user->id, 'skill_id' => $skill->skill_id, 'level_id' => $levelId],
+            ['status' => 'in_progress', 'points_earned' => 0, 'questions_answered' => 0, 'videos_watched' => 0]
         );
 
-        $completedIds = is_array($progress->completed_questions)
-            ? array_map('intval', $progress->completed_questions)
-            : [];
+        // 2. Track which videos the user has already watched in this session/database
+        $completedQuestions = is_array($progress->completed_questions) ? $progress->completed_questions : [];
 
-        $questions = $skill->questions()->where('level_id', $levelId)->get();
-        $videoQuestionMap = [];
-
-        foreach ($questions as $question) {
-            if ($question->video_id) {
-                $videoQuestionMap[$question->question_id] = $question->video_id;
-            }
-        }
+        $correctVideoIds = collect();
 
         foreach ($submittedAnswers as $questionId => $answerData) {
             $question = Question::find($questionId);
+            if (!$question || $question->level_id != $levelId) continue;
 
-            if (!$question || $question->skill_id != $skill->skill_id || $question->level_id != $levelId) {
-                continue;
-            }
-
-            $correctAnswerIds = Answer::where('question_id', $questionId)
-                ->where('is_correct', true)
-                ->pluck('answer_id')
-                ->toArray();
-
-            $userAnswerIds = is_array($answerData)
-                ? array_map('intval', $answerData)
-                : [(int) $answerData];
-
+            $correctAnswerIds = Answer::where('question_id', $questionId)->where('is_correct', true)->pluck('answer_id')->toArray();
+            $userAnswerIds = is_array($answerData) ? array_map('intval', $answerData) : [(int)$answerData];
             sort($correctAnswerIds);
             sort($userAnswerIds);
 
             if ($correctAnswerIds !== $userAnswerIds) {
                 $incorrectQuestionIds[] = $questionId;
             } else {
-                if (!in_array((int) $questionId, $completedIds)) {
-                    $completedIds[] = (int) $questionId;
-                    $totalNewPoints += (int) ($question->points ?? 0);
+                // User got it right!
+                if (!in_array((int)$questionId, $completedQuestions)) {
+                    $completedQuestions[] = (int)$questionId;
+                    $totalNewPoints += (int)($question->points ?? 0);
+                }
 
-                    if (isset($videoQuestionMap[$questionId])) {
-                        $newlyWatchedVideos[] = $videoQuestionMap[$questionId];
-                    }
+                if ($question->video_id) {
+                    $correctVideoIds->push($question->video_id);
                 }
             }
         }
 
         if (!empty($incorrectQuestionIds)) {
-            return redirect()->back()
-                ->withInput()
-                ->with('error', 'Incorrect answers! Please try again.')
-                ->with('incorrect_questions', $incorrectQuestionIds);
+            return redirect()->back()->withInput()->with('error', 'Incorrect answers!')->with('incorrect_questions', $incorrectQuestionIds);
         }
 
-        $sessionKey = "watched_video_ids_{$skill->skill_id}_{$levelId}";
-        $watchedVideoIds = session()->get($sessionKey, []);
-        $videosToAdd = 0;
+        // 3. UPDATE VIDEO WATCHED COUNT
+        $newVideoCount = $correctVideoIds->unique()->count();
+        $progress->videos_watched = max($progress->videos_watched, $newVideoCount);
 
-        foreach ($newlyWatchedVideos as $videoId) {
-            if (!in_array($videoId, $watchedVideoIds)) {
-                $watchedVideoIds[] = $videoId;
-                $videosToAdd++;
-            }
-        }
-
-        if ($videosToAdd > 0) {
-            session()->put($sessionKey, $watchedVideoIds);
-        }
-
-        $timeSpentSeconds = (int) $request->input('time_spent', 0);
-
-        $progress->completed_questions = array_values(array_unique($completedIds));
-        $progress->points_earned = max(0, (int) $progress->points_earned + $totalNewPoints);
-
+        // 4. UPDATE STATS
+        $progress->completed_questions = array_values(array_unique($completedQuestions));
+        $progress->questions_answered = count($progress->completed_questions);
+        $progress->points_earned += $totalNewPoints;
         $progress->total_videos_in_skill = $realVideoCount;
         $progress->total_questions_in_skill = $realQuestionCount;
 
-        $progress->questions_answered = min(
-            count($progress->completed_questions),
-            $realQuestionCount
-        );
-
-        $progress->videos_watched = min(
-            max(0, (int) $progress->videos_watched + $videosToAdd),
-            $realVideoCount
-        );
-
-        $progress->time_spent_minutes = max(
-            0,
-            (int) $progress->time_spent_minutes + max(1, round($timeSpentSeconds / 60))
-        );
-
-        $videoPercentage = $realVideoCount > 0
-            ? ($progress->videos_watched / $realVideoCount) * 100
-            : 0;
-
-        $questionPercentage = $realQuestionCount > 0
-            ? ($progress->questions_answered / $realQuestionCount) * 100
-            : 0;
+        $qPerc = ($realQuestionCount > 0) ? ($progress->questions_answered / $realQuestionCount) * 100 : 100;
+        $vPerc = ($realVideoCount > 0) ? ($progress->videos_watched / $realVideoCount) * 100 : 100;
 
         if ($realVideoCount > 0 && $realQuestionCount > 0) {
-            $progress->completion_percentage = round(($videoPercentage + $questionPercentage) / 2, 1);
-        } elseif ($realQuestionCount > 0) {
-            $progress->completion_percentage = round($questionPercentage, 1);
-        } elseif ($realVideoCount > 0) {
-            $progress->completion_percentage = round($videoPercentage, 1);
+            $progress->completion_percentage = ($qPerc + $vPerc) / 2;
         } else {
-            $progress->completion_percentage = 0;
+            $progress->completion_percentage = ($realVideoCount == 0) ? $qPerc : $vPerc;
         }
 
-        $progress->completion_percentage = min(100, max(0, $progress->completion_percentage));
+        $progress->completion_percentage = round(min(100, $progress->completion_percentage), 1);
         $progress->status = ($progress->completion_percentage >= 100) ? 'completed' : 'in_progress';
-
-        if ($progress->status === 'completed' && !$progress->completed_at) {
-            $progress->completed_at = now();
-        }
-
         $progress->save();
 
-        $level = Level::find($levelId);
-
-        return redirect()->route('user.skills.show', [
-            'skill' => $skill->skill_id,
-            'level' => $levelId
-        ])->with('success', "Perfect! You earned {$totalNewPoints} points for the {$level->level_name} level!");
+        return redirect()->route('user.skills.show', ['skill' => $skill->skill_id, 'level' => $levelId])
+            ->with('success', "Quiz completed! Video progress updated.");
     }
-
     public function getLevelsForSkill(Skill $skill)
     {
         try {
@@ -608,87 +506,36 @@ class SkillController extends Controller
         $user = Auth::user();
         $levelId = $request->input('level_id', $user->level_id);
 
-        $skill->load('videos', 'levels');
-
-        if ($video->skill_id != $skill->skill_id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid video for this skill'
-            ], 400);
-        }
-
-        $levelExists = $skill->levels->contains('level_id', $levelId);
-
-        if (!$levelExists) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid level selected'
-            ], 400);
-        }
-
-        $realVideoCount = $skill->videos->count();
         $realQuestionCount = $skill->questions()->where('level_id', $levelId)->count();
+        $realVideoCount = $skill->questions()->where('level_id', $levelId)->whereNotNull('video_id')->distinct('video_id')->count();
 
         $progress = UserProgress::firstOrCreate(
-            [
-                'user_id' => $user->id,
-                'skill_id' => $skill->skill_id,
-                'level_id' => $levelId,
-            ],
-            [
-                'status' => 'in_progress',
-                'total_videos_in_skill' => $realVideoCount,
-                'total_questions_in_skill' => $realQuestionCount,
-                'completed_questions' => [],
-                'points_earned' => 0,
-                'questions_answered' => 0,
-                'videos_watched' => 0,
-                'completion_percentage' => 0,
-                'started_at' => now(),
-            ]
+            ['user_id' => $user->id, 'skill_id' => $skill->skill_id, 'level_id' => $levelId]
         );
 
         $progress->total_videos_in_skill = $realVideoCount;
         $progress->total_questions_in_skill = $realQuestionCount;
-        $progress->videos_watched = min(
-            max(0, (int) $progress->videos_watched + 1),
-            $realVideoCount
-        );
-        $progress->questions_answered = min(
-            max(0, (int) $progress->questions_answered),
-            $realQuestionCount
-        );
-
-        $videoPercentage = $realVideoCount > 0
-            ? ($progress->videos_watched / $realVideoCount) * 100
-            : 0;
-
-        $questionPercentage = $realQuestionCount > 0
-            ? ($progress->questions_answered / $realQuestionCount) * 100
-            : 0;
+        $progress->videos_watched = min($progress->videos_watched + 1, $realVideoCount);
+        
+        $qPerc = ($realQuestionCount > 0) ? ($progress->questions_answered / $realQuestionCount) * 100 : 100;
+        $vPerc = ($realVideoCount > 0) ? ($progress->videos_watched / $realVideoCount) * 100 : 100;
 
         if ($realVideoCount > 0 && $realQuestionCount > 0) {
-            $progress->completion_percentage = round(($videoPercentage + $questionPercentage) / 2, 1);
-        } elseif ($realQuestionCount > 0) {
-            $progress->completion_percentage = round($questionPercentage, 1);
-        } elseif ($realVideoCount > 0) {
-            $progress->completion_percentage = round($videoPercentage, 1);
+            $progress->completion_percentage = ($qPerc + $vPerc) / 2;
         } else {
-            $progress->completion_percentage = 0;
+            $progress->completion_percentage = ($realVideoCount == 0) ? $qPerc : $vPerc;
         }
 
-        $progress->completion_percentage = min(100, max(0, $progress->completion_percentage));
+        $progress->completion_percentage = round(min(100, $progress->completion_percentage), 1);
+        $progress->status = ($progress->completion_percentage >= 100) ? 'completed' : 'in_progress';
         $progress->save();
 
         return response()->json([
             'success' => true,
-            'message' => 'Video confirmed as watched!',
-            'videos_watched' => $progress->videos_watched,
-            'total_videos' => $progress->total_videos_in_skill,
-            'completion_percentage' => $progress->completion_percentage
+            'completion_percentage' => $progress->completion_percentage,
+            'status' => $progress->status
         ]);
     }
-
     public function updateLevel(Request $request)
     {
         try {

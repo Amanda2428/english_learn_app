@@ -72,48 +72,46 @@ class LevelController extends Controller
     /**
      * Display the specified level for authenticated users.
      */
-  public function show(Level $level)
-    {
-        $user = Auth::user();
-        
-        if ($user && $user->level_id != $level->level_id) {
-            User::where('id', $user->id)->update([
-                'level_id' => $level->level_id
-            ]);
-            // Refresh the user object
-            $user = User::find($user->id);
-        }
+public function show(Level $level)
+{
+    $user = Auth::user();
     
-        
-        // Load skills with their related data
-        $level->load(['skills' => function($query) {
-            $query->where('status', true)
-                  ->withCount(['videos', 'questions']);
-        }]);
-        
-        // Get user's progress for skills in this level
-        $skillIds = $level->skills->pluck('skill_id')->toArray();
-        $userProgress = UserProgress::where('user_id', $user->id)
-            ->whereIn('skill_id', $skillIds)
-            ->get()
-            ->keyBy('skill_id');
-        
-        // Calculate level progress
-        $totalSkills = $level->skills->count();
-        $completedSkills = $userProgress->where('status', 'completed')->count();
-        $levelProgress = $totalSkills > 0 ? round(($completedSkills / $totalSkills) * 100) : 0;
-        
-        // Get next and previous levels
-        $nextLevel = Level::where('level_order', '>', $level->level_order)
-            ->orderBy('level_order')
-            ->first();
-            
-        $prevLevel = Level::where('level_order', '<', $level->level_order)
-            ->orderBy('level_order', 'desc')
-            ->first();
-        
-        return view('user.levels.show', compact('level', 'userProgress', 'levelProgress', 'nextLevel', 'prevLevel'));
+    if ($user && $user->level_id != $level->level_id) {
+        User::where('id', $user->id)->update(['level_id' => $level->level_id]);
+        $user = User::find($user->id);
     }
+
+    // Load skills and count videos/questions ONLY for this level
+    $level->load(['skills' => function($query) use ($level) {
+        $query->where('status', true)
+              ->withCount(['videos as level_videos_count' => function($q) use ($level) {
+              
+                  $q->whereHas('questions', function($sq) use ($level) {
+                      $sq->where('level_id', $level->level_id);
+                  });
+              }])
+              ->withCount(['questions as level_questions_count' => function($q) use ($level) {
+                  $q->where('level_id', $level->level_id);
+              }]);
+    }]);
+    
+    $skillIds = $level->skills->pluck('skill_id')->toArray();
+
+    $userProgress = UserProgress::where('user_id', $user->id)
+        ->where('level_id', $level->level_id) 
+        ->whereIn('skill_id', $skillIds)
+        ->get()
+        ->keyBy('skill_id');
+    
+    $totalSkills = $level->skills->count();
+    $completedSkills = $userProgress->where('status', 'completed')->count();
+    $levelProgress = $totalSkills > 0 ? round(($completedSkills / $totalSkills) * 100) : 0;
+    
+    $nextLevel = Level::where('level_order', '>', $level->level_order)->orderBy('level_order')->first();
+    $prevLevel = Level::where('level_order', '<', $level->level_order)->orderBy('level_order', 'desc')->first();
+    
+    return view('user.levels.show', compact('level', 'userProgress', 'levelProgress', 'nextLevel', 'prevLevel'));
+}
 
     /**
      * Select/activate a level for the user

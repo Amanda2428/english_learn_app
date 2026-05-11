@@ -239,11 +239,11 @@
 
                 <div class="faq-item bg-white rounded-xl border border-gray-200 overflow-hidden">
                     <button class="faq-question w-full text-left px-6 py-4 font-medium text-gray-900 hover:bg-gray-50 transition flex justify-between items-center">
-                        <span>How do I use the AI Chatbot?</span>
+                        <span>How do I use the Chatbot?</span>
                         <i class="fas fa-chevron-down text-gray-400 transition-transform"></i>
                     </button>
                     <div class="faq-answer hidden px-6 pb-4 text-gray-600 border-t border-gray-100 pt-3">
-                        <p>The AI Chatbot is your personal learning assistant! Here's how to use it:</p>
+                        <p>The Chatbot is your personal learning assistant! Here's how to use it:</p>
                         <ol class="list-decimal list-inside mt-2 space-y-1">
                             <li>Click the chat icon in the top-right corner of any page</li>
                             <li>Type your question about English learning</li>
@@ -295,7 +295,7 @@
                             <li>✓ All skills and practice questions</li>
                             <li>✓ Video lessons and learning materials</li>
                             <li>✓ Progress tracking and analytics</li>
-                            <li>✓ AI Chatbot assistance</li>
+                            <li>✓ Chatbot assistance</li>
                         </ul>
                         <p class="mt-2">We believe in making quality English education accessible to everyone!</p>
                     </div>
@@ -331,7 +331,7 @@
         <div class="flex flex-col sm:flex-row gap-4 justify-center">
             <button onclick="openChatbot()" class="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-md">
                 <i class="fas fa-comment-dots mr-2"></i>
-                Chat with AI Bot
+                Chat with Chatbot
             </button>
             <a href="mailto:support@fluentedgetest.com" class="inline-flex items-center px-6 py-3 border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition">
                 <i class="fas fa-envelope mr-2"></i>

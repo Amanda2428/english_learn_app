@@ -309,45 +309,69 @@ class UserController extends Controller
     /**
      * Display user progress.
      */
-    public function progress(User $user)
-    {
-        // Get paginated progress data
-        $progress = UserProgress::with(['skill', 'level'])
-            ->where('user_id', $user->id)
-            ->orderBy('updated_at', 'desc')
-            ->paginate(20);
+ /**
+ * Display user progress for admin review.
+ */
+public function progress(User $user)
+{
+    // 1. Get paginated detailed progress data for the table
+    $progress = UserProgress::with(['skill', 'level'])
+        ->where('user_id', $user->id)
+        ->orderBy('updated_at', 'desc')
+        ->paginate(20);
 
-        // Get recent progress for timeline
-        $recentProgress = UserProgress::with(['skill', 'level'])
-            ->where('user_id', $user->id)
-            ->orderBy('updated_at', 'desc')
-            ->limit(10)
-            ->get();
+    // 2. Get recent activity for the timeline
+    $recentProgress = UserProgress::with(['skill', 'level'])
+        ->where('user_id', $user->id)
+        ->orderBy('updated_at', 'desc')
+        ->limit(10)
+        ->get();
 
-        // Calculate statistics
-        $stats = [
-            'total_points' => UserProgress::where('user_id', $user->id)->sum('points_earned'),
-            'completed_skills' => UserProgress::where('user_id', $user->id)
-                ->where('status', 'completed')
-                ->count(),
-            'in_progress_skills' => UserProgress::where('user_id', $user->id)
-                ->where('status', 'in_progress')
-                ->count(),
-            'videos_watched' => UserProgress::where('user_id', $user->id)->sum('videos_watched'),
-            'questions_answered' => UserProgress::where('user_id', $user->id)->sum('questions_answered'),
-            'correct_answers' => UserProgress::where('user_id', $user->id)->sum('correct_answers'),
-            'total_time' => UserProgress::where('user_id', $user->id)->sum('time_spent_minutes'),
-            'total_skills' => Skill::count(),
-            'total_videos' => Video::count(),
-        ];
+    // 3. Fetch all progress records for statistical calculation
+    $userProgressCollection = UserProgress::where('user_id', $user->id)->get();
 
-        // Calculate accuracy rate
-        $stats['accuracy_rate'] = $stats['questions_answered'] > 0
-            ? round(($stats['correct_answers'] / $stats['questions_answered']) * 100, 2)
-            : 0;
+    // 4. Calculate Raw Data
+    $totalPoints = (int) $userProgressCollection->sum('points_earned');
+    $totalTimeMinutes = (int) $userProgressCollection->sum('time_spent_minutes');
+    
+    // mastery_count is based on questions answered correctly (questions_answered)
+    $questionsMastered = (int) $userProgressCollection->sum('questions_answered');
+    
+    // total_possible is the sum of questions available in the skills they have started
+    $totalPossibleQuestions = (int) $userProgressCollection->sum('total_questions_in_skill');
 
-        return view('admin.users.progress', compact('user', 'progress', 'recentProgress', 'stats'));
+    // 5. Time Fallback Logic
+    // If time is 0 but user has activity, assume 2 mins per active skill record
+    if ($totalTimeMinutes === 0 && ($totalPoints > 0 || $questionsMastered > 0)) {
+        $activeSkillCount = $userProgressCollection->where('status', '!=', 'not_started')->count();
+        $totalTimeMinutes = max(1, $activeSkillCount * 2);
     }
+
+    // 6. Build the Stats Array
+    $stats = [
+        'total_points' => $totalPoints,
+        'completed_skills' => $userProgressCollection->where('status', 'completed')->count(),
+        'in_progress_skills' => $userProgressCollection->where('status', 'in_progress')->count(),
+        'videos_watched' => (int) $userProgressCollection->sum('videos_watched'),
+        'total_videos_count' => (int) $userProgressCollection->sum('total_videos_in_skill'),
+        'questions_mastered' => $questionsMastered,
+        'total_questions' => $totalPossibleQuestions,
+        'total_time' => $totalTimeMinutes,
+        'total_skills_in_system' => \App\Models\Skill::count(),
+    ];
+
+    // 7. Calculate Mastery Rate (%)
+    // Formula: (Correct Questions / Total Questions in Skills Started) * 100
+    $stats['mastery_rate'] = $totalPossibleQuestions > 0
+        ? round(($questionsMastered / $totalPossibleQuestions) * 100, 1)
+        : 0;
+
+    // 8. Calculate Daily Average
+    $daysSinceJoined = max(1, $user->created_at->diffInDays(now()));
+    $stats['daily_average'] = round($totalTimeMinutes / $daysSinceJoined, 1);
+
+    return view('admin.users.progress', compact('user', 'progress', 'recentProgress', 'stats'));
+}
 
     /**
      * Bulk delete users.

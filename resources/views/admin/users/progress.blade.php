@@ -98,7 +98,7 @@
                 </div>
                 <div class="px-6 py-4">
                     <p class="text-blue-200 text-xs uppercase tracking-wider">Total Activities</p>
-                    <p class="text-white font-semibold">{{ $stats['videos_watched'] + $stats['questions_answered'] }}</p>
+                    <p class="text-white font-semibold">{{ $stats['videos_watched'] + $stats['questions_mastered'] }}</p>
                 </div>
                 <div class="px-6 py-4">
                     <p class="text-blue-200 text-xs uppercase tracking-wider">Time Spent</p>
@@ -166,12 +166,12 @@
                             </path>
                         </svg>
                     </div>
-                    <span class="text-3xl font-bold text-gray-800">{{ $stats['questions_answered'] }}</span>
+                    <span class="text-3xl font-bold text-gray-800">{{ $stats['questions_mastered'] }}</span>
                 </div>
                 <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider">Questions Answered</h3>
                 <div class="mt-2 flex items-center justify-between text-xs">
                     <span class="text-gray-400">{{ $stats['correct_answers'] ?? 0 }} correct</span>
-                    <span class="text-green-600 font-medium">{{ $stats['accuracy_rate'] }}% accuracy</span>
+                    <span class="text-green-600 font-medium">{{ $stats['mastery_rate'] }}% mastery</span>
                 </div>
             </div>
         </div>
@@ -222,22 +222,21 @@
                 </div>
             </div>
 
-            <!-- Accuracy Rate Card -->
-            <div class="bg-gradient-to-br from-green-400 to-green-600 rounded-2xl shadow-lg p-6 text-white">
+            <div
+                class="bg-gradient-to-br from-green-400 to-green-600 rounded-2xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300 text-white">
                 <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-lg font-semibold">Accuracy Rate</h3>
-                    <svg class="w-8 h-8 text-green-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                </div>
-                <p class="text-4xl font-bold mb-2">{{ $stats['accuracy_rate'] }}%</p>
-                <p class="text-green-100 text-sm">Questions answered correctly</p>
-                <div class="mt-4 pt-4 border-t border-green-500/30">
-                    <div class="flex justify-between text-sm">
-                        <span>{{ $stats['correct_answers'] ?? 0 }} correct</span>
-                        <span>{{ $stats['questions_answered'] - ($stats['correct_answers'] ?? 0) }} incorrect</span>
+                    <div class="p-3 bg-white/20 backdrop-blur rounded-xl">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
                     </div>
+                    <span class="text-3xl font-bold text-white">{{ $stats['mastery_rate'] }}%</span>
+                </div>
+                <h3 class="text-sm font-medium text-green-100 uppercase tracking-wider">Mastery Rate</h3>
+                <div class="mt-2 flex items-center justify-between text-xs">
+                    <span class="text-green-100">{{ $stats['questions_mastered'] }} mastered</span>
+                    <span class="text-white font-medium">out of {{ $stats['total_questions'] }}</span>
                 </div>
             </div>
         </div>
